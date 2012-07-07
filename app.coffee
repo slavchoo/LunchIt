@@ -14,7 +14,7 @@ app.crypto = crypto = require 'crypto'
 app.configure ->
 	publicDir = "#{__dirname}/public"
 	viewsDir  = "#{__dirname}/views"
-	coffeeDir = "#{publicDir}/coffeescript"
+	coffeeDir = "#{publicDir}/coffeescript" #@todo check for needing
 
 	app.use express.bodyParser {
 		uploadDir: './files'

@@ -1,1 +1,62 @@
-site/index
+<script type="text/template" id="preferences-template">
+
+	<div>
+		<select>
+			<option value="2">Лидо</option>
+			<option value="3">Пивнуха</option>
+		</select>
+
+		<ul class="nav nav-tabs" id="preferences-tabs">
+			<li form-name="send"><a href="#">Отправка</a></li>
+			<li form-name="params"><a href="#">Параметры</a></li>
+			<li form-name="team"><a href="#">Команда</a></li>
+		</ul>
+		<div id="preferences-form"></div>
+	</div>
+</script>
+
+<script type="text/template" id="preferences-send-template">
+	<div class="form form-horizontal">
+		<fieldset>
+			<div class="row">
+				<div class="span4">
+					<div class="control-group">
+						<label class="control-label">Кому</label>
+						<div class="controls">
+							<input type="text"/>
+						</div>
+					</div>
+
+					<div class="control-group">
+						<label class="control-label">Копия</label>
+						<div class="controls">
+							<input type="text"/>
+						</div>
+					</div>
+
+					<div class="control-group">
+						<label class="control-label">Тема</label>
+						<div class="controls">
+							<input type="text"/>
+						</div>
+					</div>
+				</div>
+				<div class="span4">
+					<div class="control-group">
+						<label class="control-label">Шаблон</label>
+						<div class="controls">
+							<textarea></textarea>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="row">
+				<button type="submit" class="btn">Submit</button>
+			</div>
+		</fieldset>
+	</div>
+</script>
+
+<script type="text/template" id="preferences-params-form">
+	
+</script>

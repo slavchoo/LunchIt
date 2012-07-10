@@ -6,6 +6,7 @@ log4js = require 'log4js'
 
 # load models
 require './models/user'
+require './models/supplier'
 
 app.path =  path = require 'path'
 app.jsHandler  = jsHandler = ""

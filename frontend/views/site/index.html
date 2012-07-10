@@ -1,9 +1,8 @@
 <script type="text/template" id="preferences-template">
-
 	<div>
-		<select>
-			<option value="2">Лидо</option>
-			<option value="3">Пивнуха</option>
+		<select id="supplier">
+			<option value="23">Лидо</option>
+			<option value="35">Пивнуха</option>
 		</select>
 
 		<ul class="nav nav-tabs" id="preferences-tabs">
@@ -16,28 +15,28 @@
 </script>
 
 <script type="text/template" id="preferences-send-template">
-	<div class="form form-horizontal">
+	<div class="form form-horizontal send">
 		<fieldset>
 			<div class="row">
 				<div class="span4">
 					<div class="control-group">
 						<label class="control-label">Кому</label>
 						<div class="controls">
-							<input type="text"/>
+							<input type="text" name="address"/>
 						</div>
 					</div>
 
 					<div class="control-group">
 						<label class="control-label">Копия</label>
 						<div class="controls">
-							<input type="text"/>
+							<input type="text" name="cc"/>
 						</div>
 					</div>
 
 					<div class="control-group">
 						<label class="control-label">Тема</label>
 						<div class="controls">
-							<input type="text"/>
+							<input type="text" name="subject"/>
 						</div>
 					</div>
 				</div>
@@ -45,7 +44,29 @@
 					<div class="control-group">
 						<label class="control-label">Шаблон</label>
 						<div class="controls">
-							<textarea></textarea>
+							<textarea name="template"></textarea>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="row">
+				<button type="submit" class="btn">Submit</button>
+			</div>
+		</fieldset>
+		<a href="#" id="add-supplier">Add supplier</a>
+	</div>
+
+</script>
+
+<script type="text/template" id="preferences-params-template">
+	<div class="form form-horizontal params">
+		<fieldset>
+			<div class="row">
+				<div class="span4">
+					<div class="control-group">
+						<label class="control-label">Минимальный заказ</label>
+						<div class="controls">
+							<input type="text" name="min_order"/>
 						</div>
 					</div>
 				</div>
@@ -57,6 +78,19 @@
 	</div>
 </script>
 
-<script type="text/template" id="preferences-params-form">
-	
+<script type="text/template" id="preferences-team-template">
+	<form class="form form-inline team-user-form">
+		<ul id="users-list"></ul>
+		<fieldset>
+			<div class="row">
+				<label class="control-label">Добавить</label>
+				<input type="text" class="user-name"/>
+				<button type="submit" class="btn add">Добавить</button>
+			</div>
+		</fieldset>
+	</form>
+</script>
+
+<script type="text/template" id="preferences-team-user-template">
+	<@= name @> <a href="#" class="delete">Удалить</a>
 </script>

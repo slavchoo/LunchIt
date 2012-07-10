@@ -4,10 +4,20 @@ Query = mongoose.Query
 ObjectId = Schema.ObjectId
 crypto = require 'crypto'
 
-UserSchema = new Schema
+SupplierSchema = new Schema
 	name:
 		type: String
 		required: true
+	address:
+		type: String
+	cc:
+		type: String
+	subject:
+		type: String
+	phone:
+		type: String
+	template:
+		type: String
 	createdAt:
 		type: Date
 		default: Date.now
@@ -15,8 +25,8 @@ UserSchema = new Schema
 toLower = (v) ->
 	v.toLowerCase()
 
-User = mongoose.model 'User', UserSchema
-global.User = User
+Supplier = mongoose.model 'Supplier', SupplierSchema
+global.Supplier = Supplier
 
 
 

@@ -5,6 +5,30 @@ _.templateSettings = {
 };
 
 $ ->
+
+	usersData = [{'name': 'John Doe'}, {'name': 'Chris Wonder'}]
+
+	suppliersData = [{
+			id: 23
+			name: 'Лидо'
+			address: 'lido@lido.by'
+			cc: 'lido2@lido.by'
+			subject: 'mail subject'
+			template: 'template mail mail template'
+			min_order: 120000
+		},
+		{
+			id: 35
+			name: 'Пивнуха'
+			address: '1lido@lido.by'
+			cc: '1lido2@lido.by'
+			subject: '1mail subject'
+			template: '1template mail mail template'
+			min_order: 100000
+		}]
+
+
+
 	class Route extends Backbone.Router
 		routes:
 			"" : "index"
@@ -59,35 +83,163 @@ $ ->
 			#$(@el).append(_.template $('#AlbumContainer').html()) if !$(@el).find('#AlbumContainer').length
 
 
+	###
+	Preferences view
+	###
 	class PreferencesSendView extends Backbone.View
 		el: "#preferences-form"
+		supplierContainer: '#supplier'
 
 		initialize: ->
+
+			@collection = new SupplierList()
+			@collection.fetch()
+			@supplierId = $(@supplierContainer).val()
+
+
 			@render()
 
+
+
+
+
+			@collection.on "reset", @render, @
+
+		events: ->
+			'click button': 'save'
+			'click #add-supplier': 'addSupplier'
+
 		render: ->
+			@model = @collection.get('4ffc462b7293dd8c12000001')
 			$(@el).html(_.template $('#preferences-send-template').html())
+			preferencesFields = $(@el)
+			if @model
+				_.each @model.attributes, (item, key) =>
+					preferencesFields.find('[name="' + key + '"]').val(item)
 			return @
+
+		save: ->
+			formData = []
+			preferencesFields = $(@el).find('input, textarea')
+			supplierData = {}
+			_.each suppliersData, (item)=>
+				if item.id == @model.id
+					supplierData = item
+
+
+			suppliersData = _.map preferencesFields, (item) =>
+				key = $(item).attr('name')
+				value = $(item).val()
+				formData[key] = value
+				supplierData[key] = value
+
+
+			@model.set(formData)
+
+		addSupplier: ->
+			@collection.create {name: 'Лидо', address: 'lido@lido.by', cc: 'mike@gmail.com'}
 
 	class PreferencesParamsView extends Backbone.View
-		el: "#preferences-form"
+		el: "#preferences-form .params"
 
 		initialize: ->
 			@render()
 
+		events: ->
+			'click button': 'save'
+
 		render: ->
-			$(@el).html(_.template $('#preferences-send-template').html())
+			$(@el).html(_.template $('#preferences-params-template').html())
+			preferencesFields = $(@el)
+			_.each @model.attributes, (item, key) =>
+				preferencesFields.find('[name="' + key + '"]').val(item)
 			return @
+
+		save: ->
+			formData = []
+			preferencesFields = $(@el).find('input, textarea')
+			supplierData = {}
+			_.each suppliersData, (item)=>
+				if item.id == @model.id
+					supplierData = item
+
+
+			suppliersData = _.map preferencesFields, (item) =>
+				key = $(item).attr('name')
+				value = $(item).val()
+				formData[key] = value
+				supplierData[key] = value
+
+
+			@model.set(formData)
 
 	class PreferencesTeamView extends Backbone.View
 		el: "#preferences-form"
 
 		initialize: ->
+			@collection = new UserList()
+			@collection.fetch()
+
 			@render()
 
+			@collection.on "add", @renderUser, @
+			@collection.on "remove", @removeUser, @
+			@collection.on "reset", @render, @
+
+		events: ->
+			"click .team-user-form .add": 'addUser'
+
+		addUser: (e)->
+			e.preventDefault()
+			userNameField = $(".team-user-form").find("input.user-name")
+			userName = userNameField.val()
+			if !_.isEmpty(userName)
+				usersData.push {name: userName}
+				@collection.create {name: userName}
+				userNameField.val ''
+
 		render: ->
-			$(@el).html(_.template $('#preferences-send-template').html())
+			#render main template and than insert users list
+			$(@el).html(_.template $('#preferences-team-template').html())
+			_.each @collection.models, (item) =>
+				@renderUser item
+
 			return @
+
+		renderUser: (item)->
+			userView = new PreferencesUserView model:item
+			$('#users-list').append(userView.render().el)
+
+		removeUser: (removedUser) ->
+			removedUsersData = removedUser.attributes
+
+			#remove user from main array
+			_.each usersData, (user) =>
+				if _.isEqual user, removedUsersData
+					usersData.splice _.indexOf(usersData, user), 1;
+
+
+
+
+	class PreferencesUserView extends Backbone.View
+		tagName: 'li'
+		template: $("#preferences-team-user-template").html(),
+
+		events: ->
+			"click .delete": "deleteUser"
+
+		render: ->
+			tmpl = _.template(@template);
+			@$el.html(tmpl(@model.toJSON()));
+			return @
+
+		deleteUser: (e)->
+			e.preventDefault()
+			@model.destroy()
+			@remove()
+
+
+
 
 
 	#preferences page, that is container for preferences form
@@ -101,9 +253,11 @@ $ ->
 			@loadPreferences('send')
 
 		events: ->
-			'click #preferences-tabs li': 'switchTab'
+			'click #preferences-tabs li': 'switchTab',
+			'change #supplier': 'changeSupplier'
 
 		switchTab: (e) ->
+			e.preventDefault()
 			$(@el).find('li').removeClass "active"
 			li = $(e.target).parent()
 			li.addClass "active"
@@ -112,24 +266,18 @@ $ ->
 
 
 		loadPreferences: (name) ->
-			preferencesViews =
-				send: new PreferencesSendView()
-				parameters: new PreferencesParamsView()
-				team: new PreferencesTeamView()
-			preferencesViews[name]
 
+			switch name
+				when 'send' then new PreferencesSendView()
+				when 'params' then new PreferencesParamsView()
+				when 'team' then new PreferencesTeamView()
 
 		render: ->
 			$(@el).html(_.template $('#preferences-template').html())
 			return @
 
-		remove: ->
-			console.log "remove"
-
-		clear: ->
-			console.log "clear"
-
-
+		changeSupplier: ->
+			@supplierId = $(@supplierContainer).val()
 
 
 	routes = new Route()

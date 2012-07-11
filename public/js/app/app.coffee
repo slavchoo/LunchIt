@@ -8,24 +8,24 @@ $ ->
 
 	usersData = [{'name': 'John Doe'}, {'name': 'Chris Wonder'}]
 
-	suppliersData = [{
-			id: 23
-			name: 'Лидо'
-			address: 'lido@lido.by'
-			cc: 'lido2@lido.by'
-			subject: 'mail subject'
-			template: 'template mail mail template'
-			min_order: 120000
-		},
-		{
-			id: 35
-			name: 'Пивнуха'
-			address: '1lido@lido.by'
-			cc: '1lido2@lido.by'
-			subject: '1mail subject'
-			template: '1template mail mail template'
-			min_order: 100000
-		}]
+#	suppliersData = [{
+#			id: 23
+#			name: 'Лидо'
+#			address: 'lido@lido.by'
+#			cc: 'lido2@lido.by'
+#			subject: 'mail subject'
+#			template: 'template mail mail template'
+#			min_order: 120000
+#		},
+#		{
+#			id: 35
+#			name: 'Пивнуха'
+#			address: '1lido@lido.by'
+#			cc: '1lido2@lido.by'
+#			subject: '1mail subject'
+#			template: '1template mail mail template'
+#			min_order: 100000
+#		}]
 
 
 
@@ -45,7 +45,7 @@ $ ->
 			new IndexView()
 
 		menu: ->
-			#new MenuPage()
+			new MenuView()
 
 		suppliers: ->
 			#new SuppliersPage()
@@ -91,16 +91,9 @@ $ ->
 		supplierContainer: '#supplier'
 
 		initialize: ->
-
 			@collection = new SupplierList()
 			@collection.fetch()
 			@supplierId = $(@supplierContainer).val()
-
-
-			@render()
-
-
-
 
 
 			@collection.on "reset", @render, @
@@ -119,59 +112,49 @@ $ ->
 			return @
 
 		save: ->
-			formData = []
+			formData = {}
 			preferencesFields = $(@el).find('input, textarea')
-			supplierData = {}
-			_.each suppliersData, (item)=>
-				if item.id == @model.id
-					supplierData = item
 
-
-			suppliersData = _.map preferencesFields, (item) =>
+			_.each preferencesFields, (item) =>
 				key = $(item).attr('name')
 				value = $(item).val()
 				formData[key] = value
-				supplierData[key] = value
-
-
-			@model.set(formData)
+			@model.save(formData)
 
 		addSupplier: ->
 			@collection.create {name: 'Лидо', address: 'lido@lido.by', cc: 'mike@gmail.com'}
 
 	class PreferencesParamsView extends Backbone.View
-		el: "#preferences-form .params"
+		el: "#preferences-form"
 
 		initialize: ->
-			@render()
+			@collection = new SupplierList()
+			@collection.fetch()
+
+			@collection.on "reset", @render, @
 
 		events: ->
 			'click button': 'save'
 
 		render: ->
+			@model = @collection.get('4ffc462b7293dd8c12000001')
 			$(@el).html(_.template $('#preferences-params-template').html())
 			preferencesFields = $(@el)
-			_.each @model.attributes, (item, key) =>
-				preferencesFields.find('[name="' + key + '"]').val(item)
+			if (@model)
+				_.each @model.attributes, (item, key) =>
+					preferencesFields.find('[name="' + key + '"]').val(item)
 			return @
 
 		save: ->
-			formData = []
+			formData = {}
 			preferencesFields = $(@el).find('input, textarea')
-			supplierData = {}
-			_.each suppliersData, (item)=>
-				if item.id == @model.id
-					supplierData = item
 
-
-			suppliersData = _.map preferencesFields, (item) =>
+			_.each preferencesFields, (item) =>
 				key = $(item).attr('name')
 				value = $(item).val()
 				formData[key] = value
-				supplierData[key] = value
 
-
-			@model.set(formData)
+			@model.save(formData)
 
 	class PreferencesTeamView extends Backbone.View
 		el: "#preferences-form"
@@ -179,9 +162,7 @@ $ ->
 		initialize: ->
 			@collection = new UserList()
 			@collection.fetch()
-
 			@render()
-
 			@collection.on "add", @renderUser, @
 			@collection.on "remove", @removeUser, @
 			@collection.on "reset", @render, @
@@ -238,13 +219,9 @@ $ ->
 			@model.destroy()
 			@remove()
 
-
-
-
-
 	#preferences page, that is container for preferences form
 	class PreferencesView extends Backbone.View
-		el: "#preferences"
+		el: "#main"
 		supplierId: undefined
 
 		initialize: ->
@@ -266,11 +243,18 @@ $ ->
 
 
 		loadPreferences: (name) ->
-
-			switch name
-				when 'send' then new PreferencesSendView()
-				when 'params' then new PreferencesParamsView()
-				when 'team' then new PreferencesTeamView()
+			###
+				Initialize views only once
+			###
+			view = undefined
+			if (typeof(Views[name]) == 'undefined')
+				switch name
+					when 'send' then view = new PreferencesSendView()
+					when 'params' then view = new PreferencesParamsView()
+					when 'team' then view = new PreferencesTeamView()
+			else
+				Views[name].render()
+			Views[name] = view
 
 		render: ->
 			$(@el).html(_.template $('#preferences-template').html())
@@ -278,6 +262,145 @@ $ ->
 
 		changeSupplier: ->
 			@supplierId = $(@supplierContainer).val()
+
+
+	class SuppliersSelectorView extends Backbone.View
+		initialize:->
+			@collection = new SupplierList()
+			@collection.fetch()
+			@collection.on 'reset', @render, @
+
+		render: ->
+			$(@el).html(_.template $('#supplier-selector-template').html(), ({suppliers: @collection.models}))
+			return @
+
+	###
+	////////////////////////////
+		MENU VIEWS
+	////////////////////////////
+	###
+
+	class MenuView extends Backbone.View
+		el: '#main'
+
+		initialize: ->
+			@collection = new DishList()
+			@collection.fetch()
+			@render()
+			suppliers = new SuppliersSelectorView({el: 'div.suppliers'})
+
+			@collection.on 'add', @renderDishes, @
+			@collection.on 'reset', @renderDishes, @
+
+
+		events: ->
+			'click #add-dish': 'showDishForm'
+			'click #remove-dish': 'removeDish'
+			'dblclick .dish-info .view': 'inlineEdit'
+			'blur .dish-info input': 'saveInlineEdit'
+			'change input[type="checkbox"]': 'selectDish'
+
+		render: ->
+			$(@el).html(_.template $('#menu-template').html())
+			return @
+
+		showDishForm: (e)->
+			e.preventDefault()
+			new MenuDishFormView({collection: @collection})
+
+		renderDishes: () ->
+			food = new DishesMenuView collection: @collection
+			accessories = new AccessorisMenuView collection: @collection
+			$('#menu-dishes').html(food.render().el)
+			$('#menu-accessories').html(accessories.render().el)
+
+		inlineEdit: (e)->
+			container = $(e.target).parents('.dish-info')
+			modelId = container.attr('attributeId')
+			model = @collection.get(modelId)
+			container.find('.view').addClass('hide')
+			container
+				.find('.edit')
+				.removeClass('hide')
+				.find('input:first')
+				.focus()
+			_.each container.find('.edit input, .edit select'), (item) ->
+				key = $(item).attr('name')
+				$(item).val model.attributes[key]
+
+		saveInlineEdit: (e) ->
+			e.preventDefault()
+			container = $(e.target).parents('.dish-info')
+
+			if !$(e.target).parents('.dish-info').find('input:hover, select:hover').length
+				modelId = container.attr('attributeId')
+				container = $(e.target).parents('.dish-info')
+				container.find('.view').removeClass('hide')
+				container.find('.edit').addClass('hide')
+				model = @collection.get(modelId)
+				formData = {}
+				_.each container.find('.edit input, .edit select'), (item) ->
+					key = $(item).attr('name')
+					formData[key] = $(item).val()
+
+				model.save formData
+				@collection.trigger('reset')
+
+		selectDish: ->
+			if $('input[type="checkbox"]:checked').length > 0
+				$('.manage-dishes').removeAttr('id').attr('id', 'remove-dish').removeClass('btn-success').addClass('btn-danger').text('Удалить выбраные')
+			else
+				$('.manage-dishes').removeAttr('id').attr('id', 'add-dish').removeClass('btn-danger').addClass('btn-success').text('Добавить блюдо')
+
+		removeDish: (e) ->
+			e.preventDefault()
+			_.each $('input[type="checkbox"]:checked'), (item)=>
+				id = $(item).next().attr('attributeId')
+				@collection.get(id).destroy()
+			$('.manage-dishes').removeAttr('id').attr('id', 'add-dish').removeClass('btn-danger').addClass('btn-success').text('Добавить блюдо')
+			@collection.trigger('reset')
+
+
+	class DishesMenuView extends Backbone.View
+		render: ->
+			$(@$el).html _.template $('#menu-items-template').html(), {dishes: @collection.models, mode: 'food'}
+			return @
+
+	class AccessorisMenuView extends Backbone.View
+		render: ->
+			$(@$el).html _.template $('#menu-items-template').html(), {dishes: @collection.models, mode: 'accessories'}
+			return @
+
+
+	class MenuDishFormView extends Backbone.View
+		el: '#dish-popup'
+
+		initialize: ->
+			@render()
+			$('#dish-form').modal({backdrop: false})
+			$('#dish-form').on 'hidden', () =>
+				@hide()
+
+		events: ->
+			'click a.save': 'saveForm'
+
+		render: ->
+			$(@el).append( _.template $('#dish-form-template').html())
+
+		saveForm: (e)->
+			e.preventDefault()
+			#console.log $('#dish-form').find('input, select')
+			formData = {}
+			_.each $('#dish-form').find('input, select'), (item) ->
+				console.log item
+				formData[$(item).attr('name')] = $(item).val()
+
+			@collection.create(formData)
+			$('#dish-form').modal('hide')
+
+		hide: ->
+			$('#dish-popup').empty()
+			@undelegateEvents()
 
 
 	routes = new Route()

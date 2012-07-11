@@ -14,6 +14,14 @@
 	</div>
 </script>
 
+<script type="text/template" id="supplier-selector-template">
+	<select id="supplier-selector">
+		<@ _.each(suppliers, function(supplier) {@>
+			<option value="<@=supplier.attributes.id@>"><@=supplier.attributes.name@></option>
+		<@ }) @>
+	</select>
+</script>
+
 <script type="text/template" id="preferences-send-template">
 	<div class="form form-horizontal send">
 		<fieldset>
@@ -93,4 +101,98 @@
 
 <script type="text/template" id="preferences-team-user-template">
 	<@= name @> <a href="#" class="delete">Удалить</a>
+</script>
+
+
+
+<script type="text/template" id="menu-template">
+	<div class="suppliers"></div>
+
+	<div class="pull-right">
+		<a href="#" class="btn btn-success manage-dishes" id="add-dish">Добавить блюдо</a>
+	</div>
+	<div class="row">
+		<div class="span5">
+			<div id="menu-dishes"></div>
+		</div>
+		<div class="span5 offset2">
+			<div id="menu-accessories"></div>
+		</div>
+	</div>
+	<div id="dish-popup"></div>
+</script>
+
+
+<script type="text/template" id="dish-form-template">
+	<div class="modal hide" id="dish-form">
+		<form>
+			<div class="modal-header">
+				<button type="button" class="close" data-dismiss="modal">×</button>
+				<h3>Новое блюдо</h3>
+			</div>
+			<div class="modal-body">
+				<div class="form form-horizontal">
+					<div class="control-group">
+						<label class="control-label">Категория</label>
+						<div class="controls">
+							<select name="category">
+								<option value="1">Супы</option>
+								<option value="2">Мясо</option>
+								<option value="3">Гарниры</option>
+								<option value="4">Салаты</option>
+								<option value="5">Блины</option>
+								<option value="6">Другое</option>
+								<option value="7">Контейнеры</option>
+							</select>
+						</div>
+					</div>
+					<div class="control-group">
+						<label class="control-label">Название</label>
+						<div class="controls">
+							<input name="name"/>
+						</div>
+					</div>
+					<div class="control-group">
+						<label class="control-label">Цена</label>
+						<div class="controls">
+							<input name="price"/>
+						</div>
+					</div>
+				</div>
+			</div>
+		</form>
+		<div class="modal-footer">
+			<a href="#" class="btn" data-dismiss="modal">Закрыть</a>
+			<a href="#" class="btn btn-primary save">Сохранить</a>
+		</div>
+	</div>
+</script>
+
+<script type="text/template" id="menu-items-template">
+	<@ _.each(dishes, function(dish, index) { @>
+		<@ if ((mode == 'accessories' && dish.attributes.category == 7) || (mode == 'food' && dish.attributes.category != 7)) { @>
+			<div class="row">
+				<input type="checkbox"/>
+				<div class="dish-info" attributeId="<@=dish.attributes.id@>">
+					<div class="view">
+						<@=dish.attributes.name@>
+						<span><@=dish.attributes.price@> руб.</span>
+					</div>
+					<div class="edit hide">
+						<input type="text" class="name" name="name"/>
+						<select name="category">
+							<option value="1">Супы</option>
+							<option value="2">Мясо</option>
+							<option value="3">Гарниры</option>
+							<option value="4">Салаты</option>
+							<option value="5">Блины</option>
+							<option value="6">Другое</option>
+							<option value="7">Контейнеры</option>
+						</select>
+						<span><input type="text" class="price" name="price"/></span>
+					</div>
+				</div>
+			</div>
+		<@ } @>
+	<@ }) @>
 </script>

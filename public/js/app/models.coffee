@@ -11,16 +11,20 @@ class Supplier extends Backbone.Model
 class User extends Backbone.Model
 	initialize: ->
 
-	defaults:
-		name: 'no name'
+	parse: (response) ->
+		response.id = response._id
+		response
+
+class Dish extends Backbone.Model
+	initialize: ->
 
 	parse: (response) ->
 		response.id = response._id
 		response
 
-
 window.User = User
 window.Supplier = Supplier
+window.Dish = Dish
 
 
 class UserList extends Backbone.Collection
@@ -31,9 +35,14 @@ class SupplierList extends Backbone.Collection
 	model: Supplier
 	url: '/suppliers'
 
+class DishList extends Backbone.Collection
+	model: Dish
+	url: '/dishes'
+
 
 window.UserList = UserList
 window.SupplierList = SupplierList
+window.DishList = DishList
 
 
 

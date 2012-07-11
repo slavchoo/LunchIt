@@ -9,31 +9,12 @@
   };
 
   $(function() {
-    var AppMenuView, IndexView, PreferencesParamsView, PreferencesSendView, PreferencesTeamView, PreferencesUserView, PreferencesView, Route, Views, routes, suppliersData, usersData;
+    var AccessorisMenuView, AppMenuView, DishesMenuView, IndexView, MenuDishFormView, MenuView, PreferencesParamsView, PreferencesSendView, PreferencesTeamView, PreferencesUserView, PreferencesView, Route, SuppliersSelectorView, Views, routes, usersData;
     usersData = [
       {
         'name': 'John Doe'
       }, {
         'name': 'Chris Wonder'
-      }
-    ];
-    suppliersData = [
-      {
-        id: 23,
-        name: 'Лидо',
-        address: 'lido@lido.by',
-        cc: 'lido2@lido.by',
-        subject: 'mail subject',
-        template: 'template mail mail template',
-        min_order: 120000
-      }, {
-        id: 35,
-        name: 'Пивнуха',
-        address: '1lido@lido.by',
-        cc: '1lido2@lido.by',
-        subject: '1mail subject',
-        template: '1template mail mail template',
-        min_order: 100000
       }
     ];
     Route = (function(_super) {
@@ -61,7 +42,9 @@
         return new IndexView();
       };
 
-      Route.prototype.menu = function() {};
+      Route.prototype.menu = function() {
+        return new MenuView();
+      };
 
       Route.prototype.suppliers = function() {};
 
@@ -140,7 +123,6 @@
         this.collection = new SupplierList();
         this.collection.fetch();
         this.supplierId = $(this.supplierContainer).val();
-        this.render();
         return this.collection.on("reset", this.render, this);
       };
 
@@ -166,24 +148,17 @@
       };
 
       PreferencesSendView.prototype.save = function() {
-        var formData, preferencesFields, supplierData,
+        var formData, preferencesFields,
           _this = this;
-        formData = [];
+        formData = {};
         preferencesFields = $(this.el).find('input, textarea');
-        supplierData = {};
-        _.each(suppliersData, function(item) {
-          if (item.id === _this.model.id) {
-            return supplierData = item;
-          }
-        });
-        suppliersData = _.map(preferencesFields, function(item) {
+        _.each(preferencesFields, function(item) {
           var key, value;
           key = $(item).attr('name');
           value = $(item).val();
-          formData[key] = value;
-          return supplierData[key] = value;
+          return formData[key] = value;
         });
-        return this.model.set(formData);
+        return this.model.save(formData);
       };
 
       PreferencesSendView.prototype.addSupplier = function() {
@@ -205,10 +180,12 @@
         return PreferencesParamsView.__super__.constructor.apply(this, arguments);
       }
 
-      PreferencesParamsView.prototype.el = "#preferences-form .params";
+      PreferencesParamsView.prototype.el = "#preferences-form";
 
       PreferencesParamsView.prototype.initialize = function() {
-        return this.render();
+        this.collection = new SupplierList();
+        this.collection.fetch();
+        return this.collection.on("reset", this.render, this);
       };
 
       PreferencesParamsView.prototype.events = function() {
@@ -220,33 +197,29 @@
       PreferencesParamsView.prototype.render = function() {
         var preferencesFields,
           _this = this;
+        this.model = this.collection.get('4ffc462b7293dd8c12000001');
         $(this.el).html(_.template($('#preferences-params-template').html()));
         preferencesFields = $(this.el);
-        _.each(this.model.attributes, function(item, key) {
-          return preferencesFields.find('[name="' + key + '"]').val(item);
-        });
+        if (this.model) {
+          _.each(this.model.attributes, function(item, key) {
+            return preferencesFields.find('[name="' + key + '"]').val(item);
+          });
+        }
         return this;
       };
 
       PreferencesParamsView.prototype.save = function() {
-        var formData, preferencesFields, supplierData,
+        var formData, preferencesFields,
           _this = this;
-        formData = [];
+        formData = {};
         preferencesFields = $(this.el).find('input, textarea');
-        supplierData = {};
-        _.each(suppliersData, function(item) {
-          if (item.id === _this.model.id) {
-            return supplierData = item;
-          }
-        });
-        suppliersData = _.map(preferencesFields, function(item) {
+        _.each(preferencesFields, function(item) {
           var key, value;
           key = $(item).attr('name');
           value = $(item).val();
-          formData[key] = value;
-          return supplierData[key] = value;
+          return formData[key] = value;
         });
-        return this.model.set(formData);
+        return this.model.save(formData);
       };
 
       return PreferencesParamsView;
@@ -366,7 +339,7 @@
         return PreferencesView.__super__.constructor.apply(this, arguments);
       }
 
-      PreferencesView.prototype.el = "#preferences";
+      PreferencesView.prototype.el = "#main";
 
       PreferencesView.prototype.supplierId = void 0;
 
@@ -393,14 +366,27 @@
       };
 
       PreferencesView.prototype.loadPreferences = function(name) {
-        switch (name) {
-          case 'send':
-            return new PreferencesSendView();
-          case 'params':
-            return new PreferencesParamsView();
-          case 'team':
-            return new PreferencesTeamView();
+        /*
+        				Initialize views only once
+        */
+
+        var view;
+        view = void 0;
+        if (typeof Views[name] === 'undefined') {
+          switch (name) {
+            case 'send':
+              view = new PreferencesSendView();
+              break;
+            case 'params':
+              view = new PreferencesParamsView();
+              break;
+            case 'team':
+              view = new PreferencesTeamView();
+          }
+        } else {
+          Views[name].render();
         }
+        return Views[name] = view;
       };
 
       PreferencesView.prototype.render = function() {
@@ -413,6 +399,239 @@
       };
 
       return PreferencesView;
+
+    })(Backbone.View);
+    SuppliersSelectorView = (function(_super) {
+
+      __extends(SuppliersSelectorView, _super);
+
+      function SuppliersSelectorView() {
+        return SuppliersSelectorView.__super__.constructor.apply(this, arguments);
+      }
+
+      SuppliersSelectorView.prototype.initialize = function() {
+        this.collection = new SupplierList();
+        this.collection.fetch();
+        return this.collection.on('reset', this.render, this);
+      };
+
+      SuppliersSelectorView.prototype.render = function() {
+        $(this.el).html(_.template($('#supplier-selector-template').html(), {
+          suppliers: this.collection.models
+        }));
+        return this;
+      };
+
+      return SuppliersSelectorView;
+
+    })(Backbone.View);
+    /*
+    	////////////////////////////
+    		MENU VIEWS
+    	////////////////////////////
+    */
+
+    MenuView = (function(_super) {
+
+      __extends(MenuView, _super);
+
+      function MenuView() {
+        return MenuView.__super__.constructor.apply(this, arguments);
+      }
+
+      MenuView.prototype.el = '#main';
+
+      MenuView.prototype.initialize = function() {
+        var suppliers;
+        this.collection = new DishList();
+        this.collection.fetch();
+        this.render();
+        suppliers = new SuppliersSelectorView({
+          el: 'div.suppliers'
+        });
+        this.collection.on('add', this.renderDishes, this);
+        return this.collection.on('reset', this.renderDishes, this);
+      };
+
+      MenuView.prototype.events = function() {
+        return {
+          'click #add-dish': 'showDishForm',
+          'click #remove-dish': 'removeDish',
+          'dblclick .dish-info .view': 'inlineEdit',
+          'blur .dish-info input': 'saveInlineEdit',
+          'change input[type="checkbox"]': 'selectDish'
+        };
+      };
+
+      MenuView.prototype.render = function() {
+        $(this.el).html(_.template($('#menu-template').html()));
+        return this;
+      };
+
+      MenuView.prototype.showDishForm = function(e) {
+        e.preventDefault();
+        return new MenuDishFormView({
+          collection: this.collection
+        });
+      };
+
+      MenuView.prototype.renderDishes = function() {
+        var accessories, food;
+        food = new DishesMenuView({
+          collection: this.collection
+        });
+        accessories = new AccessorisMenuView({
+          collection: this.collection
+        });
+        $('#menu-dishes').html(food.render().el);
+        return $('#menu-accessories').html(accessories.render().el);
+      };
+
+      MenuView.prototype.inlineEdit = function(e) {
+        var container, model, modelId;
+        container = $(e.target).parents('.dish-info');
+        modelId = container.attr('attributeId');
+        model = this.collection.get(modelId);
+        container.find('.view').addClass('hide');
+        container.find('.edit').removeClass('hide').find('input:first').focus();
+        return _.each(container.find('.edit input, .edit select'), function(item) {
+          var key;
+          key = $(item).attr('name');
+          return $(item).val(model.attributes[key]);
+        });
+      };
+
+      MenuView.prototype.saveInlineEdit = function(e) {
+        var container, formData, model, modelId;
+        e.preventDefault();
+        container = $(e.target).parents('.dish-info');
+        if (!$(e.target).parents('.dish-info').find('input:hover, select:hover').length) {
+          modelId = container.attr('attributeId');
+          container = $(e.target).parents('.dish-info');
+          container.find('.view').removeClass('hide');
+          container.find('.edit').addClass('hide');
+          model = this.collection.get(modelId);
+          formData = {};
+          _.each(container.find('.edit input, .edit select'), function(item) {
+            var key;
+            key = $(item).attr('name');
+            return formData[key] = $(item).val();
+          });
+          model.save(formData);
+          return this.collection.trigger('reset');
+        }
+      };
+
+      MenuView.prototype.selectDish = function() {
+        if ($('input[type="checkbox"]:checked').length > 0) {
+          return $('.manage-dishes').removeAttr('id').attr('id', 'remove-dish').removeClass('btn-success').addClass('btn-danger').text('Удалить выбраные');
+        } else {
+          return $('.manage-dishes').removeAttr('id').attr('id', 'add-dish').removeClass('btn-danger').addClass('btn-success').text('Добавить блюдо');
+        }
+      };
+
+      MenuView.prototype.removeDish = function(e) {
+        var _this = this;
+        e.preventDefault();
+        _.each($('input[type="checkbox"]:checked'), function(item) {
+          var id;
+          id = $(item).next().attr('attributeId');
+          return _this.collection.get(id).destroy();
+        });
+        $('.manage-dishes').removeAttr('id').attr('id', 'add-dish').removeClass('btn-danger').addClass('btn-success').text('Добавить блюдо');
+        return this.collection.trigger('reset');
+      };
+
+      return MenuView;
+
+    })(Backbone.View);
+    DishesMenuView = (function(_super) {
+
+      __extends(DishesMenuView, _super);
+
+      function DishesMenuView() {
+        return DishesMenuView.__super__.constructor.apply(this, arguments);
+      }
+
+      DishesMenuView.prototype.render = function() {
+        $(this.$el).html(_.template($('#menu-items-template').html(), {
+          dishes: this.collection.models,
+          mode: 'food'
+        }));
+        return this;
+      };
+
+      return DishesMenuView;
+
+    })(Backbone.View);
+    AccessorisMenuView = (function(_super) {
+
+      __extends(AccessorisMenuView, _super);
+
+      function AccessorisMenuView() {
+        return AccessorisMenuView.__super__.constructor.apply(this, arguments);
+      }
+
+      AccessorisMenuView.prototype.render = function() {
+        $(this.$el).html(_.template($('#menu-items-template').html(), {
+          dishes: this.collection.models,
+          mode: 'accessories'
+        }));
+        return this;
+      };
+
+      return AccessorisMenuView;
+
+    })(Backbone.View);
+    MenuDishFormView = (function(_super) {
+
+      __extends(MenuDishFormView, _super);
+
+      function MenuDishFormView() {
+        return MenuDishFormView.__super__.constructor.apply(this, arguments);
+      }
+
+      MenuDishFormView.prototype.el = '#dish-popup';
+
+      MenuDishFormView.prototype.initialize = function() {
+        var _this = this;
+        this.render();
+        $('#dish-form').modal({
+          backdrop: false
+        });
+        return $('#dish-form').on('hidden', function() {
+          return _this.hide();
+        });
+      };
+
+      MenuDishFormView.prototype.events = function() {
+        return {
+          'click a.save': 'saveForm'
+        };
+      };
+
+      MenuDishFormView.prototype.render = function() {
+        return $(this.el).append(_.template($('#dish-form-template').html()));
+      };
+
+      MenuDishFormView.prototype.saveForm = function(e) {
+        var formData;
+        e.preventDefault();
+        formData = {};
+        _.each($('#dish-form').find('input, select'), function(item) {
+          console.log(item);
+          return formData[$(item).attr('name')] = $(item).val();
+        });
+        this.collection.create(formData);
+        return $('#dish-form').modal('hide');
+      };
+
+      MenuDishFormView.prototype.hide = function() {
+        $('#dish-popup').empty();
+        return this.undelegateEvents();
+      };
+
+      return MenuDishFormView;
 
     })(Backbone.View);
     routes = new Route();

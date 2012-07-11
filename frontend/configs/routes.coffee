@@ -28,7 +28,7 @@ exports.apply = (app) ->
 		$.controller('supplier').list
 	]
 
-	app.post '/suppliers/:id', [
+	app.put '/suppliers/:id', [
 		$.beforeAction
 		$.controller('supplier').update
 	]
@@ -36,4 +36,24 @@ exports.apply = (app) ->
 	app.post '/suppliers', [
 		$.beforeAction
 		$.controller('supplier').create
+	]
+
+	app.get '/dishes', [
+		$.beforeAction
+		$.controller('dish').list
+	]
+
+	app.put '/dishes/:id', [
+		$.beforeAction
+		$.controller('dish').update
+	]
+
+	app.post '/dishes', [
+		$.beforeAction
+		$.controller('dish').create
+	]
+
+	app.delete '/dishes/:id', [
+		$.beforeAction
+		$.controller('dish').delete
 	]

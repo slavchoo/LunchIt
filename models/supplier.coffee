@@ -18,6 +18,8 @@ SupplierSchema = new Schema
 		type: String
 	template:
 		type: String
+	min_order:
+		type: Number
 	createdAt:
 		type: Date
 		default: Date.now

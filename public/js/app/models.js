@@ -1,5 +1,5 @@
 (function() {
-  var Dish, DishList, Supplier, SupplierList, User, UserList,
+  var Dish, DishList, Order, OrderList, Supplier, SupplierList, User, UserList, UserOrder, UserOrderList,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -58,7 +58,46 @@
       return response;
     };
 
+    Dish.prototype.getCategory = function(item) {
+      return this.attributes.category;
+    };
+
     return Dish;
+
+  })(Backbone.Model);
+
+  Order = (function(_super) {
+
+    __extends(Order, _super);
+
+    function Order() {
+      return Order.__super__.constructor.apply(this, arguments);
+    }
+
+    Order.prototype.parse = function(response) {
+      console.log(response);
+      response.id = response._id;
+      return response;
+    };
+
+    return Order;
+
+  })(Backbone.Model);
+
+  UserOrder = (function(_super) {
+
+    __extends(UserOrder, _super);
+
+    function UserOrder() {
+      return UserOrder.__super__.constructor.apply(this, arguments);
+    }
+
+    UserOrder.prototype.parse = function(response) {
+      response.id = response._id;
+      return response;
+    };
+
+    return UserOrder;
 
   })(Backbone.Model);
 
@@ -67,6 +106,8 @@
   window.Supplier = Supplier;
 
   window.Dish = Dish;
+
+  window.UserOrder = UserOrder;
 
   UserList = (function(_super) {
 
@@ -116,10 +157,46 @@
 
   })(Backbone.Collection);
 
+  OrderList = (function(_super) {
+
+    __extends(OrderList, _super);
+
+    function OrderList() {
+      return OrderList.__super__.constructor.apply(this, arguments);
+    }
+
+    OrderList.prototype.model = Order;
+
+    OrderList.prototype.url = '/orders';
+
+    return OrderList;
+
+  })(Backbone.Collection);
+
+  UserOrderList = (function(_super) {
+
+    __extends(UserOrderList, _super);
+
+    function UserOrderList() {
+      return UserOrderList.__super__.constructor.apply(this, arguments);
+    }
+
+    UserOrderList.prototype.model = UserOrder;
+
+    UserOrderList.prototype.url = '/user_orders';
+
+    return UserOrderList;
+
+  })(Backbone.Collection);
+
   window.UserList = UserList;
 
   window.SupplierList = SupplierList;
 
   window.DishList = DishList;
+
+  window.OrderList = OrderList;
+
+  window.UserOrderList = UserOrderList;
 
 }).call(this);

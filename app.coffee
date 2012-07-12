@@ -1,5 +1,6 @@
 express = require 'express'
 ejs = require 'ejs'
+moment = require 'moment'
 app = module.exports = express.createServer()
 coffeescript = require 'coffee-script'
 log4js = require 'log4js'
@@ -8,6 +9,8 @@ log4js = require 'log4js'
 require './models/user'
 require './models/supplier'
 require './models/dish'
+require './models/order'
+require './models/user_order'
 
 app.path =  path = require 'path'
 app.jsHandler  = jsHandler = ""

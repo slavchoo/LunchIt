@@ -54,9 +54,10 @@ $ ->
 			new PreferencesView()
 
 		order: ->
-			#new OrderPage()
+			new OrderView()
 
 	Views = {}
+	PreferencesViews = {}
 
 	#Main application menu
 	class AppMenuView extends Backbone.View
@@ -247,14 +248,14 @@ $ ->
 				Initialize views only once
 			###
 			view = undefined
-			if (typeof(Views[name]) == 'undefined')
+			if (typeof(PreferencesViews[name]) == 'undefined')
 				switch name
 					when 'send' then view = new PreferencesSendView()
 					when 'params' then view = new PreferencesParamsView()
 					when 'team' then view = new PreferencesTeamView()
 			else
-				Views[name].render()
-			Views[name] = view
+				PreferencesViews[name].render()
+			PreferencesViews[name] = view
 
 		render: ->
 			$(@el).html(_.template $('#preferences-template').html())
@@ -402,6 +403,97 @@ $ ->
 			$('#dish-popup').empty()
 			@undelegateEvents()
 
+
+	### ///////////////////////////
+		ORDER PAGES
+	/////////////////////////// ###
+	class OrderView extends Backbone.View
+		el: '#main'
+
+		initialize: ->
+			@render()
+			suppliers = new SuppliersSelectorView({el: 'div.suppliers'})
+			#week swetcher
+			weekSwitcher = new WeekSwitcherView
+			weekSwitcher.render()
+
+		render: ->
+			$(@el).html _.template $('#order-template').html()
+			@
+
+
+	class WeekOrderView extends Backbone.View
+		initialize: ->
+			@first = @attributes.firstDay
+			@last = @attributes.lastDay
+			@collection = new OrderList()
+			@collection.url = '/orders/' + @first.format('YYYY-MM-DD') + '/' + @last.format('YYYY-MM-DD')
+			@collection.fetch()
+
+		render: ->
+			$(@$el).html _.template $('#week-order-template').html()
+			@
+
+	class DayOrderView extends Backbone.View
+		render: ->
+
+
+
+	class WeekSwitcherView extends Backbone.View
+		el: '#week-switcher'
+		weekNumberFromToday: 0
+
+		initialize: ->
+			@currentDayNumber = moment().format 'd'
+			@.on 'changeDate', @render, @
+
+		events: ->
+			'click .prev': 'prev'
+			'click .next': 'next'
+			'click .today': 'today'
+
+		getFirstDay:->
+			if @weekNumberFromToday < 0
+				moment().subtract('days', (parseInt(@currentDayNumber) - (@weekNumberFromToday * 7) - 1))
+			else if @weekNumberFromToday > 0
+				moment().add('days', (parseInt(@currentDayNumber) + ((@weekNumberFromToday - 1) * 7)))
+			else
+				moment().subtract('days', parseInt(@currentDayNumber) - 1)
+
+		getLastDay: ->
+			if @weekNumberFromToday < 0
+				moment().subtract('days', (parseInt(7 - @currentDayNumber) - ((@weekNumberFromToday + 1) * 7) + 1))
+			else if @weekNumberFromToday > 0
+				moment().add('days', (parseInt(7 - @currentDayNumber) + ((@weekNumberFromToday) * 7)))
+			else
+				moment().add('days', parseInt(7 - @currentDayNumber))
+
+		render: ->
+			firstDay = @getFirstDay()
+			lastDay = @getLastDay()
+
+			$(@el).html _.template $('#week-switcher-template').html(), {firstDay: firstDay, lastDay: lastDay}
+			@renderWeekOrder firstDay, lastDay
+			@
+
+		renderWeekOrder: (firstDay, lastDay)->
+			@weekOrderView = new WeekOrderView({attributes: {firstDay: firstDay, lastDay: lastDay}})
+			$('#week-order').append(@weekOrderView.render().el)
+
+		prev: (e)->
+			e.preventDefault()
+			@weekNumberFromToday -= 1
+			@trigger 'changeDate'
+
+		next: (e)->
+			e.preventDefault()
+			@weekNumberFromToday += 1
+			@trigger 'changeDate'
+
+		today: (e)->
+			e.preventDefault()
+			@weekNumberFromToday = 0
+			@trigger 'changeDate'
 
 	routes = new Route()
 	Backbone.history.start()

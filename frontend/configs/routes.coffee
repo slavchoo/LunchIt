@@ -57,3 +57,23 @@ exports.apply = (app) ->
 		$.beforeAction
 		$.controller('dish').delete
 	]
+
+	app.get '/orders/:from/:to', [
+		$.beforeAction
+		$.controller('order').list
+	]
+
+	app.put '/user_orders/:id', [
+		$.beforeAction
+		$.controller('userOrder').update
+	]
+
+	app.post '/user_orders/', [
+		$.beforeAction
+		$.controller('userOrder').create
+	]
+
+	app.delete '/user_orders/:id', [
+		$.beforeAction
+		$.controller('userOrder').delete
+	]

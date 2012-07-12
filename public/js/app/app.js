@@ -9,7 +9,7 @@
   };
 
   $(function() {
-    var AccessorisMenuView, AppMenuView, DishesMenuView, IndexView, MenuDishFormView, MenuView, PreferencesParamsView, PreferencesSendView, PreferencesTeamView, PreferencesUserView, PreferencesView, Route, SuppliersSelectorView, Views, routes, usersData;
+    var AccessorisMenuView, AppMenuView, DayOrderView, DishesMenuView, IndexView, MenuDishFormView, MenuView, OrderView, PreferencesParamsView, PreferencesSendView, PreferencesTeamView, PreferencesUserView, PreferencesView, PreferencesViews, Route, SuppliersSelectorView, Views, WeekOrderView, WeekSwitcherView, routes, usersData;
     usersData = [
       {
         'name': 'John Doe'
@@ -52,12 +52,15 @@
         return new PreferencesView();
       };
 
-      Route.prototype.order = function() {};
+      Route.prototype.order = function() {
+        return new OrderView();
+      };
 
       return Route;
 
     })(Backbone.Router);
     Views = {};
+    PreferencesViews = {};
     AppMenuView = (function(_super) {
 
       __extends(AppMenuView, _super);
@@ -372,7 +375,7 @@
 
         var view;
         view = void 0;
-        if (typeof Views[name] === 'undefined') {
+        if (typeof PreferencesViews[name] === 'undefined') {
           switch (name) {
             case 'send':
               view = new PreferencesSendView();
@@ -384,9 +387,9 @@
               view = new PreferencesTeamView();
           }
         } else {
-          Views[name].render();
+          PreferencesViews[name].render();
         }
-        return Views[name] = view;
+        return PreferencesViews[name] = view;
       };
 
       PreferencesView.prototype.render = function() {
@@ -632,6 +635,164 @@
       };
 
       return MenuDishFormView;
+
+    })(Backbone.View);
+    /* ///////////////////////////
+    		ORDER PAGES
+    	///////////////////////////
+    */
+
+    OrderView = (function(_super) {
+
+      __extends(OrderView, _super);
+
+      function OrderView() {
+        return OrderView.__super__.constructor.apply(this, arguments);
+      }
+
+      OrderView.prototype.el = '#main';
+
+      OrderView.prototype.initialize = function() {
+        var suppliers, weekSwitcher;
+        this.render();
+        suppliers = new SuppliersSelectorView({
+          el: 'div.suppliers'
+        });
+        weekSwitcher = new WeekSwitcherView;
+        return weekSwitcher.render();
+      };
+
+      OrderView.prototype.render = function() {
+        $(this.el).html(_.template($('#order-template').html()));
+        return this;
+      };
+
+      return OrderView;
+
+    })(Backbone.View);
+    WeekOrderView = (function(_super) {
+
+      __extends(WeekOrderView, _super);
+
+      function WeekOrderView() {
+        return WeekOrderView.__super__.constructor.apply(this, arguments);
+      }
+
+      WeekOrderView.prototype.initialize = function() {
+        this.first = this.attributes.firstDay;
+        this.last = this.attributes.lastDay;
+        this.collection = new OrderList();
+        this.collection.url = '/orders/' + this.first.format('YYYY-MM-DD') + '/' + this.last.format('YYYY-MM-DD');
+        return this.collection.fetch();
+      };
+
+      WeekOrderView.prototype.render = function() {
+        $(this.$el).html(_.template($('#week-order-template').html()));
+        return this;
+      };
+
+      return WeekOrderView;
+
+    })(Backbone.View);
+    DayOrderView = (function(_super) {
+
+      __extends(DayOrderView, _super);
+
+      function DayOrderView() {
+        return DayOrderView.__super__.constructor.apply(this, arguments);
+      }
+
+      DayOrderView.prototype.render = function() {};
+
+      return DayOrderView;
+
+    })(Backbone.View);
+    WeekSwitcherView = (function(_super) {
+
+      __extends(WeekSwitcherView, _super);
+
+      function WeekSwitcherView() {
+        return WeekSwitcherView.__super__.constructor.apply(this, arguments);
+      }
+
+      WeekSwitcherView.prototype.el = '#week-switcher';
+
+      WeekSwitcherView.prototype.weekNumberFromToday = 0;
+
+      WeekSwitcherView.prototype.initialize = function() {
+        this.currentDayNumber = moment().format('d');
+        return this.on('changeDate', this.render, this);
+      };
+
+      WeekSwitcherView.prototype.events = function() {
+        return {
+          'click .prev': 'prev',
+          'click .next': 'next',
+          'click .today': 'today'
+        };
+      };
+
+      WeekSwitcherView.prototype.getFirstDay = function() {
+        if (this.weekNumberFromToday < 0) {
+          return moment().subtract('days', parseInt(this.currentDayNumber) - (this.weekNumberFromToday * 7) - 1);
+        } else if (this.weekNumberFromToday > 0) {
+          return moment().add('days', parseInt(this.currentDayNumber) + ((this.weekNumberFromToday - 1) * 7));
+        } else {
+          return moment().subtract('days', parseInt(this.currentDayNumber) - 1);
+        }
+      };
+
+      WeekSwitcherView.prototype.getLastDay = function() {
+        if (this.weekNumberFromToday < 0) {
+          return moment().subtract('days', parseInt(7 - this.currentDayNumber) - ((this.weekNumberFromToday + 1) * 7) + 1);
+        } else if (this.weekNumberFromToday > 0) {
+          return moment().add('days', parseInt(7 - this.currentDayNumber) + (this.weekNumberFromToday * 7));
+        } else {
+          return moment().add('days', parseInt(7 - this.currentDayNumber));
+        }
+      };
+
+      WeekSwitcherView.prototype.render = function() {
+        var firstDay, lastDay;
+        firstDay = this.getFirstDay();
+        lastDay = this.getLastDay();
+        $(this.el).html(_.template($('#week-switcher-template').html(), {
+          firstDay: firstDay,
+          lastDay: lastDay
+        }));
+        this.renderWeekOrder(firstDay, lastDay);
+        return this;
+      };
+
+      WeekSwitcherView.prototype.renderWeekOrder = function(firstDay, lastDay) {
+        this.weekOrderView = new WeekOrderView({
+          attributes: {
+            firstDay: firstDay,
+            lastDay: lastDay
+          }
+        });
+        return $('#week-order').append(this.weekOrderView.render().el);
+      };
+
+      WeekSwitcherView.prototype.prev = function(e) {
+        e.preventDefault();
+        this.weekNumberFromToday -= 1;
+        return this.trigger('changeDate');
+      };
+
+      WeekSwitcherView.prototype.next = function(e) {
+        e.preventDefault();
+        this.weekNumberFromToday += 1;
+        return this.trigger('changeDate');
+      };
+
+      WeekSwitcherView.prototype.today = function(e) {
+        e.preventDefault();
+        this.weekNumberFromToday = 0;
+        return this.trigger('changeDate');
+      };
+
+      return WeekSwitcherView;
 
     })(Backbone.View);
     routes = new Route();

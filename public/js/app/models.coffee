@@ -22,9 +22,27 @@ class Dish extends Backbone.Model
 		response.id = response._id
 		response
 
+	getCategory: (item)->
+		@attributes.category
+
+class Order extends Backbone.Model
+	parse: (response) ->
+		console.log response
+		response.id = response._id
+		response
+
+class UserOrder extends Backbone.Model
+	parse: (response) ->
+		response.id = response._id
+		response
+
+
+
+
 window.User = User
 window.Supplier = Supplier
 window.Dish = Dish
+window.UserOrder = UserOrder
 
 
 class UserList extends Backbone.Collection
@@ -39,10 +57,22 @@ class DishList extends Backbone.Collection
 	model: Dish
 	url: '/dishes'
 
+class OrderList extends Backbone.Collection
+	model: Order
+	url: '/orders'
+
+class UserOrderList extends Backbone.Collection
+	model: UserOrder
+	url: '/user_orders'
+
+
+
 
 window.UserList = UserList
 window.SupplierList = SupplierList
 window.DishList = DishList
+window.OrderList = OrderList
+window.UserOrderList = UserOrderList
 
 
 

@@ -52,3 +52,63 @@
 #week-switcher {
 	display: inline;
 }
+
+#week-order {
+	margin-top: 30px;
+	.day-order {
+		border:1px solid #ccc;
+		padding: 10px;
+		margin: 5px 0 20px;
+		height: 150px;
+	}
+	.day-order-block {
+		margin-right: 50px;
+		display: inline-block;
+		.info {
+
+			span {
+				margin-top: 2px;
+				float: right;
+			}
+		}
+	}
+}
+.order {
+	table {
+		margin-bottom: 0;
+		tbody {
+			tr:last-child td {
+				border-bottom: 1px solid @tableBorder;
+			}
+			td {
+				&.dish-name {
+					padding-left: 100px;
+				}
+				input {
+					margin: 0;
+				}
+			}
+			td:first-child {
+				border-left: 1px solid @tableBorder;
+			}
+			td:last-child {
+				border-right: 1px solid @tableBorder;
+			}
+		}
+	}
+
+	.category-dish-name {
+		background-color: #08C;
+		font-weight: bold;
+		color: white;
+		padding: 10px;
+		&:hover {
+			background-color: lighten(#08C, 5%);
+		}
+	}
+
+	.control-buttons {
+		margin-top:15px;
+		text-align: right;
+	}
+}

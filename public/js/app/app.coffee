@@ -36,7 +36,8 @@ $ ->
 			"!/menu": "menu"
 			"!/suppliers": "supplier"
 			"!/preferences": "preferences",
-			"!/order": "order",
+			"!/week-order": "weekOrder",
+			"!/order": 'order'
 
 		initialize: ->
 			new AppMenuView()
@@ -53,8 +54,8 @@ $ ->
 		preferences: ->
 			new PreferencesView()
 
-		order: ->
-			new OrderView()
+		weekOrder: ->
+			new WeekOrderView()
 
 	Views = {}
 	PreferencesViews = {}
@@ -393,7 +394,6 @@ $ ->
 			#console.log $('#dish-form').find('input, select')
 			formData = {}
 			_.each $('#dish-form').find('input, select'), (item) ->
-				console.log item
 				formData[$(item).attr('name')] = $(item).val()
 
 			@collection.create(formData)
@@ -407,7 +407,7 @@ $ ->
 	### ///////////////////////////
 		ORDER PAGES
 	/////////////////////////// ###
-	class OrderView extends Backbone.View
+	class WeekOrderView extends Backbone.View
 		el: '#main'
 
 		initialize: ->
@@ -416,13 +416,16 @@ $ ->
 			#week swetcher
 			weekSwitcher = new WeekSwitcherView
 			weekSwitcher.render()
+			@collection = new OrderList()
+
+		events: ->
 
 		render: ->
-			$(@el).html _.template $('#order-template').html()
+			$(@el).html _.template $('#week-order-template').html()
 			@
 
 
-	class WeekOrderView extends Backbone.View
+	class WeekDayOrderView extends Backbone.View
 		initialize: ->
 			@first = @attributes.firstDay
 			@last = @attributes.lastDay
@@ -430,13 +433,33 @@ $ ->
 			@collection.url = '/orders/' + @first.format('YYYY-MM-DD') + '/' + @last.format('YYYY-MM-DD')
 			@collection.fetch()
 
+			@collection.on 'reset', @render, @
+
 		render: ->
-			$(@$el).html _.template $('#week-order-template').html()
+			orders = {}
+			_.each @collection.models, (model) ->
+				orders[moment.unix(parseInt(model.attributes.createdAt)).format('DD-MM')] = model
+
+			day = 0
+			$(@$el).html('')
+			while day < 7
+				currentDay = moment(@first).add('days', day)
+				dayOrder = new DayOrderView({attributes: {currentDay: currentDay}, model: orders[currentDay.format('DD-MM')]})
+				$(@$el).append dayOrder.render().el
+				day  = day + 1
 			@
 
 	class DayOrderView extends Backbone.View
 		render: ->
+			$(@$el).html _.template $('#day-order-template').html(), {currentDay: @attributes.currentDay, order: @model}
+			@
 
+		events: ->
+			'click .add-order': 'addOrder'
+
+		addOrder:(e)->
+			e.preventDefault()
+			new OrderView({model: @model, attributes: {currentDay: @attributes.currentDay}})
 
 
 	class WeekSwitcherView extends Backbone.View
@@ -477,8 +500,8 @@ $ ->
 			@
 
 		renderWeekOrder: (firstDay, lastDay)->
-			@weekOrderView = new WeekOrderView({attributes: {firstDay: firstDay, lastDay: lastDay}})
-			$('#week-order').append(@weekOrderView.render().el)
+			@weekOrderView = new WeekDayOrderView({attributes: {firstDay: firstDay, lastDay: lastDay}})
+			$('#week-order').html(@weekOrderView.render().el)
 
 		prev: (e)->
 			e.preventDefault()
@@ -494,6 +517,42 @@ $ ->
 			e.preventDefault()
 			@weekNumberFromToday = 0
 			@trigger 'changeDate'
+
+
+	class OrderView extends Backbone.View
+		el: '#main'
+		dishCategories:
+			1: 'Супы'
+			2: 'Мясо'
+			3: 'Гарниры'
+			4: 'Салаты'
+			5: 'Блины'
+			6: 'Другое'
+			7: 'Контейнеры'
+
+
+		initialize: ->
+			@dishes = new DishList()
+			@dishes.fetch()
+			routes.navigate("!/order");
+			@render()
+			@dishes.on 'reset', @render, @
+
+		events: ->
+			'click .category-dish-name': 'slideToggleMenu'
+			'click .save'
+
+		slideToggleMenu: (e)->
+			e.preventDefault()
+			$(e.target).next().slideToggle()
+
+		render: ->
+			dishesByCategory = {}
+			_.each @dishes.models, (model) ->
+				dishesByCategory[model.attributes.category] = [] if !dishesByCategory[model.attributes.category]
+				dishesByCategory[model.attributes.category].push(model)
+
+			$(@el).html _.template $('#order-template').html(), {model: @model, dishesByCategory: dishesByCategory, currentDay: @attributes.currentDay, dishCategories: @dishCategories}
 
 	routes = new Route()
 	Backbone.history.start()

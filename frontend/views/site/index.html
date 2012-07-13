@@ -198,7 +198,7 @@
 </script>
 
 
-<script type="text/template" id="order-template">
+<script type="text/template" id="week-order-template">
 	<div class="suppliers"></div>
 	<div id="week-switcher"></div>
 	<div id="week-order"></div>
@@ -213,6 +213,47 @@
 	</div>
 </script>
 
-<script type="text/template" id="week-order-template">
-tgdfgd
+<script type="text/template" id="day-order-template">
+	<div class="day-order-block span3">
+		<div class="info">
+			<a href="#" class="btn btn-success btn-mini add-order">Заказать</a>
+			<span><@=currentDay.format('dddd DD MMMM')@></span>
+		</div>
+
+		<div class="day-order">
+			<@ if (order) {@>
+				<b>This day have order</b>
+			<@ } @>
+		</div>
+	</div>
+</script>
+
+<script type="text/template" id="order-template">
+	<div class="order">
+
+		<@ if (dishesByCategory) { @>
+			<@ _.each(dishesByCategory, function(dishes, categoryId) { @>
+				<div class="category-dish-name">
+					<@=dishCategories[categoryId]@>
+				</div>
+				<table class="table table-striped">
+				<@ _.each(dishes, function(dish) { @>
+
+					<tr>
+						<td class="dish-name span3"><@=dish.attributes.name@></td>
+						<td class="span2"><@=dish.attributes.price@> руб.</td>
+						<td><input /></td>
+					</tr>
+
+				<@ }) @>
+				</table>
+			<@ }) @>
+			<div class="control-buttons">
+				<a href="#" class="save btn btn-success">Сохранить</a>
+				<a href="#" class="preview btn btn-success" disabled>Предварительный просмотр</a>
+			</div>
+		<@ } else { @>
+			<h2>Меню пустое</h2>
+		<@ } @>
+	</div>
 </script>

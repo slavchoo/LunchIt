@@ -63,6 +63,11 @@ exports.apply = (app) ->
 		$.controller('order').list
 	]
 
+	app.post '/orders', [
+		$.beforeAction
+		$.controller('order').create
+	]
+
 	app.put '/user_orders/:id', [
 		$.beforeAction
 		$.controller('userOrder').update

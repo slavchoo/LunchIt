@@ -5,15 +5,15 @@ ObjectId = Schema.ObjectId
 crypto = require 'crypto'
 
 UserOrderSchema = new Schema
-	user_id:
+	user:
 		type: Schema.ObjectId
 		ref: 'User'
 		required: true
-	day_order_id:
+	order:
 		type: Schema.ObjectId
-		ref: 'UserOrder'
+		ref: 'Order'
 		required: true
-	dish_id:
+	dish:
 		type: Schema.ObjectId
 		ref: 'Dish'
 		required: true

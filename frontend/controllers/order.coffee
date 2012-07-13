@@ -1,7 +1,10 @@
+moment = require 'moment'
+
 class OrderController
 	list: (req, res) ->
 		Order.find()
-			.where('createdAt').gte(moment(req.params.startDay).unix()).lte(moment(req.params.lastDay).unix())
+			.where('createdAt').gte(moment(req.params.from).unix()).lte(moment(req.params.to).unix())
+			.populate('supplier')
 			.exec (err, models) ->
 				if !err
 					res.send models
@@ -10,12 +13,13 @@ class OrderController
 
 	create: (req, res) ->
 		model = new Order {
-		date: req.body.date
-		userId: req.body.userId
+			createdAt: req.body.createdAt
+			supplier: req.body.supplier
+			price: req.body.price
 		}
 		model.save (err) ->
 			if !err
-				console.log 'dish created'
+				console.log 'order created'
 			else
 				console.log err
 		res.send model

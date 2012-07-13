@@ -12,9 +12,9 @@ OrderSchema = new Schema
 		type: Number
 		required: true
 	sentAt:
-		type: Number
+		type: String
 	createdAt:
-		type: Number
+		type: String
 
 toLower = (v) ->
 	v.toLowerCase()

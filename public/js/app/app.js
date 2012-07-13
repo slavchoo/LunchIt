@@ -9,7 +9,7 @@
   };
 
   $(function() {
-    var AccessorisMenuView, AppMenuView, DayOrderView, DishesMenuView, IndexView, MenuDishFormView, MenuView, OrderView, PreferencesParamsView, PreferencesSendView, PreferencesTeamView, PreferencesUserView, PreferencesView, PreferencesViews, Route, SuppliersSelectorView, Views, WeekOrderView, WeekSwitcherView, routes, usersData;
+    var AccessorisMenuView, AppMenuView, DayOrderView, DishesMenuView, IndexView, MenuDishFormView, MenuView, OrderView, PreferencesParamsView, PreferencesSendView, PreferencesTeamView, PreferencesUserView, PreferencesView, PreferencesViews, Route, SuppliersSelectorView, Views, WeekDayOrderView, WeekOrderView, WeekSwitcherView, routes, usersData;
     usersData = [
       {
         'name': 'John Doe'
@@ -31,7 +31,8 @@
         "!/menu": "menu",
         "!/suppliers": "supplier",
         "!/preferences": "preferences",
-        "!/order": "order"
+        "!/week-order": "weekOrder",
+        "!/order": 'order'
       };
 
       Route.prototype.initialize = function() {
@@ -52,8 +53,8 @@
         return new PreferencesView();
       };
 
-      Route.prototype.order = function() {
-        return new OrderView();
+      Route.prototype.weekOrder = function() {
+        return new WeekOrderView();
       };
 
       return Route;
@@ -622,7 +623,6 @@
         e.preventDefault();
         formData = {};
         _.each($('#dish-form').find('input, select'), function(item) {
-          console.log(item);
           return formData[$(item).attr('name')] = $(item).val();
         });
         this.collection.create(formData);
@@ -642,34 +642,6 @@
     	///////////////////////////
     */
 
-    OrderView = (function(_super) {
-
-      __extends(OrderView, _super);
-
-      function OrderView() {
-        return OrderView.__super__.constructor.apply(this, arguments);
-      }
-
-      OrderView.prototype.el = '#main';
-
-      OrderView.prototype.initialize = function() {
-        var suppliers, weekSwitcher;
-        this.render();
-        suppliers = new SuppliersSelectorView({
-          el: 'div.suppliers'
-        });
-        weekSwitcher = new WeekSwitcherView;
-        return weekSwitcher.render();
-      };
-
-      OrderView.prototype.render = function() {
-        $(this.el).html(_.template($('#order-template').html()));
-        return this;
-      };
-
-      return OrderView;
-
-    })(Backbone.View);
     WeekOrderView = (function(_super) {
 
       __extends(WeekOrderView, _super);
@@ -678,20 +650,69 @@
         return WeekOrderView.__super__.constructor.apply(this, arguments);
       }
 
+      WeekOrderView.prototype.el = '#main';
+
       WeekOrderView.prototype.initialize = function() {
-        this.first = this.attributes.firstDay;
-        this.last = this.attributes.lastDay;
-        this.collection = new OrderList();
-        this.collection.url = '/orders/' + this.first.format('YYYY-MM-DD') + '/' + this.last.format('YYYY-MM-DD');
-        return this.collection.fetch();
+        var suppliers, weekSwitcher;
+        this.render();
+        suppliers = new SuppliersSelectorView({
+          el: 'div.suppliers'
+        });
+        weekSwitcher = new WeekSwitcherView;
+        weekSwitcher.render();
+        return this.collection = new OrderList();
       };
 
+      WeekOrderView.prototype.events = function() {};
+
       WeekOrderView.prototype.render = function() {
-        $(this.$el).html(_.template($('#week-order-template').html()));
+        $(this.el).html(_.template($('#week-order-template').html()));
         return this;
       };
 
       return WeekOrderView;
+
+    })(Backbone.View);
+    WeekDayOrderView = (function(_super) {
+
+      __extends(WeekDayOrderView, _super);
+
+      function WeekDayOrderView() {
+        return WeekDayOrderView.__super__.constructor.apply(this, arguments);
+      }
+
+      WeekDayOrderView.prototype.initialize = function() {
+        this.first = this.attributes.firstDay;
+        this.last = this.attributes.lastDay;
+        this.collection = new OrderList();
+        this.collection.url = '/orders/' + this.first.format('YYYY-MM-DD') + '/' + this.last.format('YYYY-MM-DD');
+        this.collection.fetch();
+        return this.collection.on('reset', this.render, this);
+      };
+
+      WeekDayOrderView.prototype.render = function() {
+        var currentDay, day, dayOrder, orders;
+        orders = {};
+        _.each(this.collection.models, function(model) {
+          return orders[moment.unix(parseInt(model.attributes.createdAt)).format('DD-MM')] = model;
+        });
+        day = 0;
+        $(this.$el).html('');
+        while (day < 7) {
+          currentDay = moment(this.first).add('days', day);
+          dayOrder = new DayOrderView({
+            attributes: {
+              currentDay: currentDay
+            },
+            model: orders[currentDay.format('DD-MM')]
+          });
+          $(this.$el).append(dayOrder.render().el);
+          day = day + 1;
+        }
+        return this;
+      };
+
+      return WeekDayOrderView;
 
     })(Backbone.View);
     DayOrderView = (function(_super) {
@@ -702,7 +723,29 @@
         return DayOrderView.__super__.constructor.apply(this, arguments);
       }
 
-      DayOrderView.prototype.render = function() {};
+      DayOrderView.prototype.render = function() {
+        $(this.$el).html(_.template($('#day-order-template').html(), {
+          currentDay: this.attributes.currentDay,
+          order: this.model
+        }));
+        return this;
+      };
+
+      DayOrderView.prototype.events = function() {
+        return {
+          'click .add-order': 'addOrder'
+        };
+      };
+
+      DayOrderView.prototype.addOrder = function(e) {
+        e.preventDefault();
+        return new OrderView({
+          model: this.model,
+          attributes: {
+            currentDay: this.attributes.currentDay
+          }
+        });
+      };
 
       return DayOrderView;
 
@@ -765,13 +808,13 @@
       };
 
       WeekSwitcherView.prototype.renderWeekOrder = function(firstDay, lastDay) {
-        this.weekOrderView = new WeekOrderView({
+        this.weekOrderView = new WeekDayOrderView({
           attributes: {
             firstDay: firstDay,
             lastDay: lastDay
           }
         });
-        return $('#week-order').append(this.weekOrderView.render().el);
+        return $('#week-order').html(this.weekOrderView.render().el);
       };
 
       WeekSwitcherView.prototype.prev = function(e) {
@@ -793,6 +836,65 @@
       };
 
       return WeekSwitcherView;
+
+    })(Backbone.View);
+    OrderView = (function(_super) {
+
+      __extends(OrderView, _super);
+
+      function OrderView() {
+        return OrderView.__super__.constructor.apply(this, arguments);
+      }
+
+      OrderView.prototype.el = '#main';
+
+      OrderView.prototype.dishCategories = {
+        1: 'Супы',
+        2: 'Мясо',
+        3: 'Гарниры',
+        4: 'Салаты',
+        5: 'Блины',
+        6: 'Другое',
+        7: 'Контейнеры'
+      };
+
+      OrderView.prototype.initialize = function() {
+        this.dishes = new DishList();
+        this.dishes.fetch();
+        routes.navigate("!/order");
+        this.render();
+        return this.dishes.on('reset', this.render, this);
+      };
+
+      OrderView.prototype.events = function() {
+        return {
+          'click .category-dish-name': 'slideToggleMenu'
+        };
+      };
+
+      OrderView.prototype.slideToggleMenu = function(e) {
+        e.preventDefault();
+        return $(e.target).next().slideToggle();
+      };
+
+      OrderView.prototype.render = function() {
+        var dishesByCategory;
+        dishesByCategory = {};
+        _.each(this.dishes.models, function(model) {
+          if (!dishesByCategory[model.attributes.category]) {
+            dishesByCategory[model.attributes.category] = [];
+          }
+          return dishesByCategory[model.attributes.category].push(model);
+        });
+        return $(this.el).html(_.template($('#order-template').html(), {
+          model: this.model,
+          dishesByCategory: dishesByCategory,
+          currentDay: this.attributes.currentDay,
+          dishCategories: this.dishCategories
+        }));
+      };
+
+      return OrderView;
 
     })(Backbone.View);
     routes = new Route();

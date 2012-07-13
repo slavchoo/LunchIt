@@ -1,6 +1,5 @@
 express = require 'express'
 ejs = require 'ejs'
-moment = require 'moment'
 app = module.exports = express.createServer()
 coffeescript = require 'coffee-script'
 log4js = require 'log4js'

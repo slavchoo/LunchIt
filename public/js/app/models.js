@@ -75,7 +75,6 @@
     }
 
     Order.prototype.parse = function(response) {
-      console.log(response);
       response.id = response._id;
       return response;
     };

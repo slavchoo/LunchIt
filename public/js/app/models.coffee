@@ -27,7 +27,6 @@ class Dish extends Backbone.Model
 
 class Order extends Backbone.Model
 	parse: (response) ->
-		console.log response
 		response.id = response._id
 		response
 

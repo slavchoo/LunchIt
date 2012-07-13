@@ -230,8 +230,14 @@
 
 <script type="text/template" id="order-template">
 	<div class="order">
-
 		<@ if (dishesByCategory) { @>
+			<div class="order-date"><h2>Заказ на <@=currentDay.format('dddd, DD MMMM')@></h2></div>
+
+			<select class="user">
+				<@ _.each(users.models, function(user) {@>
+					<option value="<@=user.attributes.id@>"><@=user.attributes.name@></option>
+				<@ }) @>
+			</select>
 			<@ _.each(dishesByCategory, function(dishes, categoryId) { @>
 				<div class="category-dish-name">
 					<@=dishCategories[categoryId]@>

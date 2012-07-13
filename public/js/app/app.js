@@ -859,6 +859,8 @@
       };
 
       OrderView.prototype.initialize = function() {
+        this.users = new UserList();
+        this.users.fetch();
         this.dishes = new DishList();
         this.dishes.fetch();
         routes.navigate("!/order");
@@ -868,13 +870,23 @@
 
       OrderView.prototype.events = function() {
         return {
-          'click .category-dish-name': 'slideToggleMenu'
+          'click .category-dish-name': 'slideToggleMenu',
+          'click .save': 'saveOrder',
+          'click .preview': 'previewOrder'
         };
       };
 
       OrderView.prototype.slideToggleMenu = function(e) {
         e.preventDefault();
         return $(e.target).next().slideToggle();
+      };
+
+      OrderView.prototype.saveOrder = function(e) {
+        return e.preventDefault();
+      };
+
+      OrderView.prototype.previewOrder = function(e) {
+        return e.preventDefault();
       };
 
       OrderView.prototype.render = function() {
@@ -890,7 +902,8 @@
           model: this.model,
           dishesByCategory: dishesByCategory,
           currentDay: this.attributes.currentDay,
-          dishCategories: this.dishCategories
+          dishCategories: this.dishCategories,
+          users: this.users
         }));
       };
 

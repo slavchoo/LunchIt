@@ -532,19 +532,29 @@ $ ->
 
 
 		initialize: ->
+			@users = new UserList()
+			@users.fetch()
 			@dishes = new DishList()
 			@dishes.fetch()
+
 			routes.navigate("!/order");
 			@render()
 			@dishes.on 'reset', @render, @
 
 		events: ->
 			'click .category-dish-name': 'slideToggleMenu'
-			'click .save'
+			'click .save': 'saveOrder'
+			'click .preview': 'previewOrder'
 
 		slideToggleMenu: (e)->
 			e.preventDefault()
 			$(e.target).next().slideToggle()
+
+		saveOrder: (e)->
+			e.preventDefault()
+
+		previewOrder: (e)->
+			e.preventDefault()
 
 		render: ->
 			dishesByCategory = {}
@@ -552,7 +562,7 @@ $ ->
 				dishesByCategory[model.attributes.category] = [] if !dishesByCategory[model.attributes.category]
 				dishesByCategory[model.attributes.category].push(model)
 
-			$(@el).html _.template $('#order-template').html(), {model: @model, dishesByCategory: dishesByCategory, currentDay: @attributes.currentDay, dishCategories: @dishCategories}
+			$(@el).html _.template $('#order-template').html(), {model: @model, dishesByCategory: dishesByCategory, currentDay: @attributes.currentDay, dishCategories: @dishCategories, users: @users}
 
 	routes = new Route()
 	Backbone.history.start()

@@ -13,14 +13,14 @@ exports.apply = (app)->
 
 	app.use express.session {
 		secret: "lunchIt_secred_Wdi78",
-	#	store: new MongoStore({
-	#	db: new Db('lunchIt_session',
-	#		new Server('localhost', 27017, {
-	#		auto_reconnect: true,
-	#		native_parser: true
-	#		})
-	#		, {})
-	#	})
+		store: new MongoStore({
+		db: new Db('lunchIt_session',
+			new Server('192.168.1.100', 27017, {
+				auto_reconnect: true,
+				native_parser: true
+			})
+			, {})
+		})
 	}
 
 #	mongoose.connect('mongodb://localhost/lunchIt', (err)->

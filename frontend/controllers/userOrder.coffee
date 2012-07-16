@@ -1,3 +1,6 @@
+moment = require 'moment'
+_ = require "underscore"
+
 class UserOrderController
 	list: (req, res) ->
 
@@ -8,16 +11,32 @@ class UserOrderController
 				console.log err
 
 	create: (req, res) ->
-		model = new UserOrder {
-			date: req.body.date
-			userId: req.body.userId
-		}
-		model.save (err) ->
-			if !err
-				console.log 'dish created'
-			else
-				console.log err
-		res.send model
+		orderParams = req.body[0]
+		console.log orderParams
+		if !orderParams.order
+			order = new Order({
+				supplier: orderParams.supplier
+				createdAt: orderParams.date
+			})
+			order.save()
+			orderId = order._id
+		else
+			orderId = orderParams.order
+
+		_.each req.body, (item) ->
+			Dish.findById(item.dish).exec (err, doc) =>
+				model = new UserOrder {
+					dish: item.dish
+					user: item.user
+					quantity: item.quantity
+					order: orderId,
+					price: doc.price
+				}
+				model.save (err) ->
+					if !err
+						console.log 'user order created'
+					else
+						console.log err
 
 
 	update: (req, res) ->
@@ -40,5 +59,18 @@ class UserOrderController
 					res.send ''
 				console.log err
 
+	orderDishes: (req, res) ->
+		UserOrder.find({'order': req.params.id}).populate('user').exec (err, models) ->
+			if !err
+				res.send models
+			else
+				console.log err
 
+
+	userOrder: (req, res) ->
+		UserOrder.find({'order': req.params.orderId, 'user': req.params.userId}).populate('user').exec (err, modules) ->
+			if !err
+				res.send models
+			else
+				concole.log err
 module.exports = new UserOrderController()

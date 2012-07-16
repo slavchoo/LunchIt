@@ -10,7 +10,6 @@ OrderSchema = new Schema
 		ref: 'Supplier'
 	price:
 		type: Number
-		required: true
 	sentAt:
 		type: String
 	createdAt:

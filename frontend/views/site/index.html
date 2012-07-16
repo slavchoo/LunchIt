@@ -222,7 +222,13 @@
 
 		<div class="day-order">
 			<@ if (order) {@>
-				<b>This day have order</b>
+				<@ _.each(userOrders, function(userOrder) {@>
+					<div class="user-order badge badge-info" userId="<@=userOrder.user._id@>">
+						<div class="name"><@=userOrder.user.name@></div>
+						<div class="quantity"><@=userOrder.order.length@></div>
+						<div class="total"><@=userOrder.total@> руб</div>
+					</div>
+				<@})@>
 			<@ } @>
 		</div>
 	</div>
@@ -244,13 +250,11 @@
 				</div>
 				<table class="table table-striped">
 				<@ _.each(dishes, function(dish) { @>
-
 					<tr>
 						<td class="dish-name span3"><@=dish.attributes.name@></td>
 						<td class="span2"><@=dish.attributes.price@> руб.</td>
-						<td><input /></td>
+						<td><input class="dish-order" price="<@=dish.attributes.price@>" dishId="<@=dish.attributes.id@>" name="number"/></td>
 					</tr>
-
 				<@ }) @>
 				</table>
 			<@ }) @>

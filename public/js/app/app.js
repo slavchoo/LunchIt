@@ -9,14 +9,7 @@
   };
 
   $(function() {
-    var AccessorisMenuView, AppMenuView, DayOrderView, DishesMenuView, IndexView, MenuDishFormView, MenuView, OrderView, PreferencesParamsView, PreferencesSendView, PreferencesTeamView, PreferencesUserView, PreferencesView, PreferencesViews, Route, SuppliersSelectorView, Views, WeekDayOrderView, WeekOrderView, WeekSwitcherView, routes, usersData;
-    usersData = [
-      {
-        'name': 'John Doe'
-      }, {
-        'name': 'Chris Wonder'
-      }
-    ];
+    var AccessorisMenuView, AppMenuView, DayOrderView, DishesMenuView, IndexView, MenuDishFormView, MenuView, OrderView, PreferencesParamsView, PreferencesSendView, PreferencesTeamView, PreferencesUserView, PreferencesView, PreferencesViews, Route, SuppliersSelectorView, Views, WeekDayOrderView, WeekOrderView, WeekSwitcherView, routes;
     Route = (function(_super) {
 
       __extends(Route, _super);
@@ -723,22 +716,60 @@
         return DayOrderView.__super__.constructor.apply(this, arguments);
       }
 
+      DayOrderView.prototype.initialize = function() {
+        if (this.model) {
+          this.collection = new UserOrderList();
+          this.collection.url = '/user_orders/' + this.model.id;
+          this.collection.fetch();
+          return this.collection.on('reset', this.render, this);
+        }
+      };
+
       DayOrderView.prototype.render = function() {
+        var userOrders;
+        userOrders = {};
+        if (this.collection) {
+          _.each(this.collection.models, function(item) {
+            if (!userOrders[item.attributes.user._id]) {
+              userOrders[item.attributes.user._id] = {
+                user: {},
+                order: [],
+                total: 0
+              };
+            }
+            userOrders[item.attributes.user._id].user = item.attributes.user;
+            userOrders[item.attributes.user._id].order.push(item.attributes);
+            return userOrders[item.attributes.user._id].total += item.attributes.price * item.attributes.quantity;
+          });
+        }
         $(this.$el).html(_.template($('#day-order-template').html(), {
           currentDay: this.attributes.currentDay,
-          order: this.model
+          order: this.model,
+          userOrders: userOrders
         }));
         return this;
       };
 
       DayOrderView.prototype.events = function() {
         return {
-          'click .add-order': 'addOrder'
+          'click .add-order': 'addOrder',
+          'click .user-order': 'editOrder'
         };
       };
 
       DayOrderView.prototype.addOrder = function(e) {
         e.preventDefault();
+        return new OrderView({
+          model: this.model,
+          attributes: {
+            currentDay: this.attributes.currentDay
+          }
+        });
+      };
+
+      DayOrderView.prototype.editOrder = function(e) {
+        e.preventDefault();
+        console.log($(e.target).attr('userId'));
         return new OrderView({
           model: this.model,
           attributes: {
@@ -779,7 +810,7 @@
         if (this.weekNumberFromToday < 0) {
           return moment().subtract('days', parseInt(this.currentDayNumber) - (this.weekNumberFromToday * 7) - 1);
         } else if (this.weekNumberFromToday > 0) {
-          return moment().add('days', parseInt(this.currentDayNumber) + ((this.weekNumberFromToday - 1) * 7));
+          return moment().add('days', parseInt(this.currentDayNumber) + (this.weekNumberFromToday * 7) - 1);
         } else {
           return moment().subtract('days', parseInt(this.currentDayNumber) - 1);
         }
@@ -787,7 +818,7 @@
 
       WeekSwitcherView.prototype.getLastDay = function() {
         if (this.weekNumberFromToday < 0) {
-          return moment().subtract('days', parseInt(7 - this.currentDayNumber) - ((this.weekNumberFromToday + 1) * 7) + 1);
+          return moment().add('days', parseInt(7 - this.currentDayNumber) - ((this.weekNumberFromToday + 1) * 7) + 1);
         } else if (this.weekNumberFromToday > 0) {
           return moment().add('days', parseInt(7 - this.currentDayNumber) + (this.weekNumberFromToday * 7));
         } else {
@@ -863,6 +894,7 @@
         this.users.fetch();
         this.dishes = new DishList();
         this.dishes.fetch();
+        this.userOrder = new UserOrderList();
         routes.navigate("!/order");
         this.render();
         return this.dishes.on('reset', this.render, this);
@@ -882,7 +914,28 @@
       };
 
       OrderView.prototype.saveOrder = function(e) {
-        return e.preventDefault();
+        var orderBlock, orderedDishes, selectedSupplier, userId,
+          _this = this;
+        e.preventDefault();
+        selectedSupplier = $('#supplier-selector').val();
+        orderedDishes = [];
+        orderBlock = $('#main .order');
+        userId = orderBlock.find('.user').val();
+        _.each(orderBlock.find('.dish-order'), function(item) {
+          if ($(item).val() > 0) {
+            console.log(_this.model);
+            return orderedDishes.push({
+              dish: $(item).attr('dishId'),
+              quantity: $(item).val(),
+              user: userId,
+              supplier: selectedSupplier,
+              order: _this.model ? _this.model.attributes.id : void 0,
+              date: moment(_this.attributes.currentDay).unix()
+            });
+          }
+        });
+        this.userOrder.create(orderedDishes);
+        return this.close();
       };
 
       OrderView.prototype.previewOrder = function(e) {
@@ -905,6 +958,10 @@
           dishCategories: this.dishCategories,
           users: this.users
         }));
+      };
+
+      OrderView.prototype.close = function() {
+        return new WeekOrderView();
       };
 
       return OrderView;

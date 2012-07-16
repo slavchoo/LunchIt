@@ -17,6 +17,8 @@ UserOrderSchema = new Schema
 		type: Schema.ObjectId
 		ref: 'Dish'
 		required: true
+	quantity:
+		type: Number
 	price:
 		type: Number
 		required: true

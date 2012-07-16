@@ -5,30 +5,6 @@ _.templateSettings = {
 };
 
 $ ->
-
-	usersData = [{'name': 'John Doe'}, {'name': 'Chris Wonder'}]
-
-#	suppliersData = [{
-#			id: 23
-#			name: 'Лидо'
-#			address: 'lido@lido.by'
-#			cc: 'lido2@lido.by'
-#			subject: 'mail subject'
-#			template: 'template mail mail template'
-#			min_order: 120000
-#		},
-#		{
-#			id: 35
-#			name: 'Пивнуха'
-#			address: '1lido@lido.by'
-#			cc: '1lido2@lido.by'
-#			subject: '1mail subject'
-#			template: '1template mail mail template'
-#			min_order: 100000
-#		}]
-
-
-
 	class Route extends Backbone.Router
 		routes:
 			"" : "index"
@@ -66,10 +42,10 @@ $ ->
 		tagName: 'li'
 
 		events: ->
-			"click li" : "activateMenuItem" #add tagName variable instead of using tag li
+			"click li" : "activateMenuItem"
 
 		activateMenuItem: (e) ->
-			$(@el).find(@tagName).removeClass "active" #need more right solution
+			$(@el).find(@tagName).removeClass "active"
 			$(e.target).parent().addClass "active"
 
 
@@ -96,7 +72,6 @@ $ ->
 			@collection = new SupplierList()
 			@collection.fetch()
 			@supplierId = $(@supplierContainer).val()
-
 
 			@collection.on "reset", @render, @
 
@@ -450,16 +425,42 @@ $ ->
 			@
 
 	class DayOrderView extends Backbone.View
+		initialize: ->
+			if @model
+				@collection = new UserOrderList()
+				@collection.url = '/user_orders/' + @model.id
+				@collection.fetch()
+
+				@collection.on 'reset', @render, @
+
 		render: ->
-			$(@$el).html _.template $('#day-order-template').html(), {currentDay: @attributes.currentDay, order: @model}
+			userOrders = {}
+			if (@collection)
+				_.each @collection.models, (item) ->
+					userOrders[item.attributes.user._id] = {user: {}, order: [], total: 0} if !userOrders[item.attributes.user._id]
+					userOrders[item.attributes.user._id].user = item.attributes.user
+					userOrders[item.attributes.user._id].order.push(item.attributes)
+					userOrders[item.attributes.user._id].total += item.attributes.price * item.attributes.quantity
+
+			$(@$el).html _.template $('#day-order-template').html(), {currentDay: @attributes.currentDay, order: @model, userOrders: userOrders}
 			@
 
 		events: ->
 			'click .add-order': 'addOrder'
+			'click .user-order': 'editOrder'
 
 		addOrder:(e)->
 			e.preventDefault()
 			new OrderView({model: @model, attributes: {currentDay: @attributes.currentDay}})
+
+		editOrder: (e) ->
+			e.preventDefault()
+			orderLine = $(e.target)
+			if orderLine.attr('userId')
+				userId = orderLine.attr('userId')
+			else
+				userId = orderLine.parent().attr('userId')
+			new OrderView({model: @model, attributes: {currentDay: @attributes.currentDay, userId: userId}})
 
 
 	class WeekSwitcherView extends Backbone.View
@@ -479,13 +480,13 @@ $ ->
 			if @weekNumberFromToday < 0
 				moment().subtract('days', (parseInt(@currentDayNumber) - (@weekNumberFromToday * 7) - 1))
 			else if @weekNumberFromToday > 0
-				moment().add('days', (parseInt(@currentDayNumber) + ((@weekNumberFromToday - 1) * 7)))
+				moment().add('days', (parseInt(@currentDayNumber) + ((@weekNumberFromToday) * 7) - 1))
 			else
 				moment().subtract('days', parseInt(@currentDayNumber) - 1)
 
 		getLastDay: ->
 			if @weekNumberFromToday < 0
-				moment().subtract('days', (parseInt(7 - @currentDayNumber) - ((@weekNumberFromToday + 1) * 7) + 1))
+				moment().add('days', (parseInt(7 - @currentDayNumber) - ((@weekNumberFromToday + 1) * 7) + 1))
 			else if @weekNumberFromToday > 0
 				moment().add('days', (parseInt(7 - @currentDayNumber) + ((@weekNumberFromToday) * 7)))
 			else
@@ -537,6 +538,11 @@ $ ->
 			@dishes = new DishList()
 			@dishes.fetch()
 
+			@userOrder = new UserOrderList()
+			if @attributes.userId && @model
+				@userOrder.url = '/user_order/' + @attributes.userId + '/' + @model.attributes.id
+				@userOrder.fetch()
+
 			routes.navigate("!/order");
 			@render()
 			@dishes.on 'reset', @render, @
@@ -552,6 +558,24 @@ $ ->
 
 		saveOrder: (e)->
 			e.preventDefault()
+			selectedSupplier = $('#supplier-selector').val()
+			orderedDishes = []
+			orderBlock = $('#main .order')
+			userId = orderBlock.find('.user').val()
+			_.each orderBlock.find('.dish-order'), (item) =>
+				if $(item).val() > 0
+					console.log @model
+					orderedDishes.push({
+						dish: $(item).attr('dishId')
+						quantity: $(item).val()
+						user: userId
+						supplier: selectedSupplier
+						order: if @model then @model.attributes.id else undefined
+						date: moment(@attributes.currentDay).unix()
+					})
+
+			@userOrder.create(orderedDishes)
+			@close()
 
 		previewOrder: (e)->
 			e.preventDefault()
@@ -563,6 +587,9 @@ $ ->
 				dishesByCategory[model.attributes.category].push(model)
 
 			$(@el).html _.template $('#order-template').html(), {model: @model, dishesByCategory: dishesByCategory, currentDay: @attributes.currentDay, dishCategories: @dishCategories, users: @users}
+
+		close: ->
+			new WeekOrderView()
 
 	routes = new Route()
 	Backbone.history.start()

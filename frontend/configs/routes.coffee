@@ -68,12 +68,24 @@ exports.apply = (app) ->
 		$.controller('order').create
 	]
 
+	#get all dishes from one order
+	app.get '/user_orders/:id', [
+		$.beforeAction
+		$.controller('userOrder').orderDishes
+	]
+
+	#get all dishes for one order and one user. For edit
+	app.get '/user_orders/:userId/:orderId', [
+		$.beforeAction
+		$.controller('userOrder').userOrder
+	]
+
 	app.put '/user_orders/:id', [
 		$.beforeAction
 		$.controller('userOrder').update
 	]
 
-	app.post '/user_orders/', [
+	app.post '/user_orders', [
 		$.beforeAction
 		$.controller('userOrder').create
 	]

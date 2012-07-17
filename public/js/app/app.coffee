@@ -26,7 +26,7 @@ $ ->
 			new MenuView()
 
 		suppliers: ->
-			#new SuppliersPage()
+			new SuppliersView()
 
 		preferences: ->
 			new PreferencesView()
@@ -637,6 +637,11 @@ $ ->
 
 		close: ->
 			new WeekOrderView()
+
+
+  class SuppliersView extends Backbone.View
+    initialize: ->
+      
 
 	routes = new Route()
 	Backbone.history.start()

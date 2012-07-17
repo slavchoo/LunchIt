@@ -1,17 +1,18 @@
 _.templateSettings = {
-	evaluate    : /<@([\s\S]+?)@>/g,
-	interpolate : /<@=([\s\S]+?)@>/g,
-	escape      : /<@-([\s\S]+?)@>/g
-};
+	evaluate: /<@([\s\S]+?)@>/g,
+	interpolate: /<@=([\s\S]+?)@>/g,
+	escape: /<@-([\s\S]+?)@>/g
+}
+
 ViewsLiteral = {}
 
 $ ->
 	class Route extends Backbone.Router
 		routes:
-			"" : "index"
+			"": "index"
 			"!/": "index"
 			"!/menu": "menu"
-			"!/suppliers": "supplier"
+			"!/suppliers": "suppliers"
 			"!/preferences": "preferences",
 			"!/week-order": "weekOrder",
 			"!/order": 'order'
@@ -43,12 +44,11 @@ $ ->
 		tagName: 'li'
 
 		events: ->
-			"click li" : "activateMenuItem"
+			"click li": "activateMenuItem"
 
 		activateMenuItem: (e) ->
 			$(@el).find(@tagName).removeClass "active"
 			$(e.target).parent().addClass "active"
-
 
 
 	class IndexView extends Backbone.View
@@ -63,7 +63,7 @@ $ ->
 
 
 	###
-	Preferences view
+		Preferences view
 	###
 	class PreferencesSendView extends Backbone.View
 		el: "#preferences-form"
@@ -73,9 +73,9 @@ $ ->
 			ViewsLiteral.suppliersView.collection.on "reset", @render, @
 			ViewsLiteral.suppliersView.on 'changeValue', @render, @
 
-#		destroyBind: ->
-#			ViewsLiteral.suppliersView.collection.off "reset", @render, @
-#			ViewsLiteral.suppliersView.off 'change', @render, @
+		#		destroyBind: ->
+		#			ViewsLiteral.suppliersView.collection.off "reset", @render, @
+		#			ViewsLiteral.suppliersView.off 'change', @render, @
 
 		events: ->
 			'click button': 'save'
@@ -108,9 +108,9 @@ $ ->
 			ViewsLiteral.suppliersView.collection.on "reset", @render, @
 			ViewsLiteral.suppliersView.on 'changeValue', @render, @
 
-#		destroyBind: ->
-#			ViewsLiteral.suppliersView.collection.off "reset", @render, @
-#			ViewsLiteral.suppliersView.off 'change', @render, @
+		#		destroyBind: ->
+		#			ViewsLiteral.suppliersView.collection.off "reset", @render, @
+		#			ViewsLiteral.suppliersView.off 'change', @render, @
 
 		events: ->
 			'click button': 'save'
@@ -167,7 +167,7 @@ $ ->
 			return @
 
 		renderUser: (item)->
-			userView = new PreferencesUserView model:item
+			userView = new PreferencesUserView model: item
 			$('#users-list').append(userView.render().el)
 
 		removeUser: (removedUser) ->
@@ -176,9 +176,7 @@ $ ->
 			#remove user from main array
 			_.each usersData, (user) =>
 				if _.isEqual user, removedUsersData
-					usersData.splice _.indexOf(usersData, user), 1;
-
-
+					usersData.splice _.indexOf(usersData, user), 1
 
 
 	class PreferencesUserView extends Backbone.View
@@ -189,8 +187,8 @@ $ ->
 			"click .delete": "deleteUser"
 
 		render: ->
-			tmpl = _.template(@template);
-			@$el.html(tmpl(@model.toJSON()));
+			tmpl = _.template(@template)
+			@$el.html(tmpl(@model.toJSON()))
 			return @
 
 		deleteUser: (e)->
@@ -204,7 +202,8 @@ $ ->
 
 		initialize: ->
 			@render()
-			$(@el).find('ul li:eq(0)').addClass 'active' #set first element selected
+			$(@el).find('ul li:eq(0)').addClass 'active'
+			#set first element selected
 			ViewsLiteral.suppliersView = new SuppliersSelectorView({el: 'div.suppliers'})
 			@loadPreferences('send')
 
@@ -252,7 +251,7 @@ $ ->
 	class SuppliersSelectorView extends Backbone.View
 		current: undefined
 
-		initialize:->
+		initialize: ->
 			@collection = new SupplierList()
 			@collection.fetch()
 			@collection.on 'reset', @render, @
@@ -388,7 +387,7 @@ $ ->
 			'click a.save': 'saveForm'
 
 		render: ->
-			$(@el).append( _.template $('#dish-form-template').html())
+			$(@el).append(_.template $('#dish-form-template').html())
 
 		saveForm: (e)->
 			e.preventDefault()
@@ -447,7 +446,7 @@ $ ->
 				currentDay = moment(@first).add('days', day)
 				dayOrder = new DayOrderView({attributes: {currentDay: currentDay}, model: orders[currentDay.format('DD-MM')]})
 				$(@$el).append dayOrder.render().el
-				day  = day + 1
+				day = day + 1
 			@
 
 	class DayOrderView extends Backbone.View
@@ -464,7 +463,7 @@ $ ->
 			dayTotal = 0
 			if (@collection)
 				_.each @collection.models, (item) ->
-					userOrders[item.attributes.user._id] = {user: {}, order: [], total: 0} if !userOrders[item.attributes.user._id]
+					userOrders[item.attributes.user._id] = {user:{}, order: [], total: 0} if !userOrders[item.attributes.user._id]
 					userOrders[item.attributes.user._id].user = item.attributes.user
 					userOrders[item.attributes.user._id].order.push(item.attributes)
 					userOrders[item.attributes.user._id].total += item.attributes.price * item.attributes.quantity
@@ -477,9 +476,9 @@ $ ->
 			'click .add-order': 'addOrder'
 			'click .user-order': 'editOrder'
 
-		addOrder:(e)->
+		addOrder: (e)->
 			e.preventDefault()
-			new OrderView({model: @model, attributes: {currentDay: @attributes.currentDay}})
+			new OrderView({model: @model, attributes:{currentDay: @attributes.currentDay}})
 
 		editOrder: (e) ->
 			e.preventDefault()
@@ -488,7 +487,8 @@ $ ->
 				userId = orderLine.attr('userId')
 			else
 				userId = orderLine.parent().attr('userId')
-			new OrderView({model: @model, attributes: {currentDay: @attributes.currentDay, userId: userId}})
+			new OrderView({model: @model, attributes:
+				{currentDay: @attributes.currentDay, userId: userId}})
 
 
 	class WeekSwitcherView extends Backbone.View
@@ -504,7 +504,7 @@ $ ->
 			'click .next': 'next'
 			'click .today': 'today'
 
-		getFirstDay:->
+		getFirstDay: ->
 			if @weekNumberFromToday < 0
 				moment().subtract('days', (parseInt(@currentDayNumber) - (@weekNumberFromToday * 7) - 1))
 			else if @weekNumberFromToday > 0
@@ -529,7 +529,7 @@ $ ->
 			@
 
 		renderWeekOrder: (firstDay, lastDay)->
-			@weekOrderView = new WeekDayOrderView({attributes: {firstDay: firstDay, lastDay: lastDay}})
+			@weekOrderView = new WeekDayOrderView({attributes:{firstDay: firstDay, lastDay: lastDay}})
 			$('#week-order').html(@weekOrderView.render().el)
 
 		prev: (e)->
@@ -638,10 +638,33 @@ $ ->
 		close: ->
 			new WeekOrderView()
 
+	class SuppliersView extends Backbone.View
+		el: "#main"
 
-  class SuppliersView extends Backbone.View
-    initialize: ->
-      
+		initialize: ->
+			@collection = new SupplierList()
+			@collection.fetch()
+
+			@collection.on 'reset', @render, @
+
+		render: ->
+			$(@el).html _.template $('#suppliers-template').html()
+			_.each @collection.models, (item)=>
+				@renderSupplier item
+
+		renderSupplier: (model)->
+			supplierView = new SupplierView model: model
+			$('.suppliers-block').append supplierView.render().el
+
+
+	class SupplierView extends Backbone.View
+		tagName: 'li'
+
+		events: ->
+
+		render: ->
+			$(@$el).html $('#supplier-template').html(), @model.attributes
+			@
 
 	routes = new Route()
 	Backbone.history.start()

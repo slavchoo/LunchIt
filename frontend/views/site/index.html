@@ -21,14 +21,66 @@
 
 <script type="text/template" id="suppliers-template">
     <div class="suppliers-block">
-        <ul>
-
-        </ul>
+        <ul></ul>
     </div>
+
+	<div class="supplier-form"></div>
+
+	<a href="#" class="add btn btn-success">Добавить</a>
 </script>
 
 <script type="text/template" id="supplier-template">
     <span><@=name@></span> <a href="#" class="edit btn btn-info">Редактировать</a> <a href="#" class="delete btn btn-important">Удалить</a>
+</script>
+
+
+<script type="text/template" id="supplier-form-template">
+	<div class="form form-horizontal send">
+		<fieldset>
+			<div class="row">
+				<div class="span4">
+					<div class="control-group">
+						<label class="control-label">Название</label>
+						<div class="controls">
+							<input type="text" name="name"/>
+						</div>
+					</div>
+
+					<div class="control-group">
+						<label class="control-label">Кому</label>
+						<div class="controls">
+							<input type="text" name="address"/>
+						</div>
+					</div>
+
+					<div class="control-group">
+						<label class="control-label">Копия</label>
+						<div class="controls">
+							<input type="text" name="cc"/>
+						</div>
+					</div>
+
+					<div class="control-group">
+						<label class="control-label">Тема</label>
+						<div class="controls">
+							<input type="text" name="subject"/>
+						</div>
+					</div>
+				</div>
+				<div class="span4">
+					<div class="control-group">
+						<label class="control-label">Шаблон</label>
+						<div class="controls">
+							<textarea name="template"></textarea>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="row">
+				<button type="submit" class="btn">Сохранить</button>
+			</div>
+		</fieldset>
+	</div>
 </script>
 
 <script type="text/template" id="preferences-send-template">
@@ -70,7 +122,6 @@
 				<button type="submit" class="btn">Submit</button>
 			</div>
 		</fieldset>
-		<a href="#" id="add-supplier">Add supplier</a>
 	</div>
 
 </script>

@@ -27,7 +27,7 @@ $ ->
 			new MenuView()
 
 		suppliers: ->
-			new SuppliersView()
+			ViewsLiteral.suppliersPageView = new SuppliersView()
 
 		preferences: ->
 			new PreferencesView()
@@ -642,28 +642,77 @@ $ ->
 		el: "#main"
 
 		initialize: ->
+			@updateSuppliers()
+
+		updateSuppliers: ->
 			@collection = new SupplierList()
 			@collection.fetch()
-
 			@collection.on 'reset', @render, @
+
+		events: ->
+			'click .add': 'addSupplier'
+
+		addSupplier: (e) ->
+			e.preventDefault()
+			new EditSupplierView({collection: @collection, model: @model})
 
 		render: ->
 			$(@el).html _.template $('#suppliers-template').html()
-			_.each @collection.models, (item)=>
-				@renderSupplier item
+			if @collection.models.length
+				_.each @collection.models, (item)=>
+					@renderSupplier item, @collection
+			else
+				$('.suppliers-block').html('<h2>Hи одного поставщика не добавлено</h2>')
 
-		renderSupplier: (model)->
-			supplierView = new SupplierView model: model
+		renderSupplier: (model, collection)->
+			supplierView = new SupplierView model: model, collection: collection
 			$('.suppliers-block').append supplierView.render().el
+
+	class EditSupplierView extends Backbone.View
+		el: '.supplier-form'
+
+		initialize: ->
+			@render()
+
+		events: ->
+			'click button': 'save'
+
+		render: ->
+			console.log @model
+			$(@el).html _.template $('#supplier-form-template').html()
+			container = $(@el)
+			if @model
+				_.each @model.attributes, (item, key) ->
+					container.find('[name="' + key + '"]').val(item)
+
+		save: ->
+			formData = {}
+			_.each $(@el).find('input, select, textarea'), (item) ->
+				formData[$(item).attr('name')] = $(item).val()
+			if !@model
+				@model = new Supplier(formData)
+				@collection.create @model
+			else
+				@model.save formData
+			@remove()
+
+			
+
+			ViewsLiteral.suppliersPageView.updateSuppliers()
 
 
 	class SupplierView extends Backbone.View
 		tagName: 'li'
 
 		events: ->
+			'click .edit': 'edit'
+
+		edit: (e) ->
+			e.preventDefault()
+			new EditSupplierView({model: @model})
 
 		render: ->
-			$(@$el).html $('#supplier-template').html(), @model.attributes
+			$(@$el).html _.template $('#supplier-template').html(), @model.attributes
 			@
 
 	routes = new Route()
@@ -786,7 +835,7 @@ $ ->
 #
 #		displayPost: (e) ->
 #			controller.navigate "!/post/#{@model.get '_id'}", true
-#			return false
+#			return false_.each @model, (item)
 #
 #		render: ->
 #			@$el.html _.template @template.html(), @model.toJSON()

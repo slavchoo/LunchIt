@@ -1,5 +1,6 @@
 (function() {
-  var __hasProp = {}.hasOwnProperty,
+  var ViewsLiteral,
+    __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   _.templateSettings = {
@@ -7,6 +8,8 @@
     interpolate: /<@=([\s\S]+?)@>/g,
     escape: /<@-([\s\S]+?)@>/g
   };
+
+  ViewsLiteral = {};
 
   $(function() {
     var AccessorisMenuView, AppMenuView, DayOrderView, DishesMenuView, IndexView, MenuDishFormView, MenuView, OrderView, PreferencesParamsView, PreferencesSendView, PreferencesTeamView, PreferencesUserView, PreferencesView, PreferencesViews, Route, SuppliersSelectorView, Views, WeekDayOrderView, WeekOrderView, WeekSwitcherView, routes;
@@ -117,10 +120,8 @@
       PreferencesSendView.prototype.supplierContainer = '#supplier';
 
       PreferencesSendView.prototype.initialize = function() {
-        this.collection = new SupplierList();
-        this.collection.fetch();
-        this.supplierId = $(this.supplierContainer).val();
-        return this.collection.on("reset", this.render, this);
+        ViewsLiteral.suppliersView.collection.on("reset", this.render, this);
+        return ViewsLiteral.suppliersView.on('changeValue', this.render, this);
       };
 
       PreferencesSendView.prototype.events = function() {
@@ -131,15 +132,11 @@
       };
 
       PreferencesSendView.prototype.render = function() {
-        var preferencesFields,
-          _this = this;
-        this.model = this.collection.get('4ffc462b7293dd8c12000001');
-        $(this.el).html(_.template($('#preferences-send-template').html()));
-        preferencesFields = $(this.el);
+        this.model = ViewsLiteral.suppliersView.getCurrent();
         if (this.model) {
-          _.each(this.model.attributes, function(item, key) {
-            return preferencesFields.find('[name="' + key + '"]').val(item);
-          });
+          $(this.el).html(_.template($('#preferences-send-template').html(), {
+            model: this.model.attributes
+          }));
         }
         return this;
       };
@@ -180,9 +177,8 @@
       PreferencesParamsView.prototype.el = "#preferences-form";
 
       PreferencesParamsView.prototype.initialize = function() {
-        this.collection = new SupplierList();
-        this.collection.fetch();
-        return this.collection.on("reset", this.render, this);
+        ViewsLiteral.suppliersView.collection.on("reset", this.render, this);
+        return ViewsLiteral.suppliersView.on('changeValue', this.render, this);
       };
 
       PreferencesParamsView.prototype.events = function() {
@@ -194,8 +190,10 @@
       PreferencesParamsView.prototype.render = function() {
         var preferencesFields,
           _this = this;
-        this.model = this.collection.get('4ffc462b7293dd8c12000001');
-        $(this.el).html(_.template($('#preferences-params-template').html()));
+        this.model = ViewsLiteral.suppliersView.getCurrent();
+        $(this.el).html(_.template($('#preferences-params-template').html(), {
+          model: this.model
+        }));
         preferencesFields = $(this.el);
         if (this.model) {
           _.each(this.model.attributes, function(item, key) {
@@ -338,11 +336,12 @@
 
       PreferencesView.prototype.el = "#main";
 
-      PreferencesView.prototype.supplierId = void 0;
-
       PreferencesView.prototype.initialize = function() {
         this.render();
         $(this.el).find('ul li:eq(0)').addClass('active');
+        ViewsLiteral.suppliersView = new SuppliersSelectorView({
+          el: 'div.suppliers'
+        });
         return this.loadPreferences('send');
       };
 
@@ -363,27 +362,32 @@
       };
 
       PreferencesView.prototype.loadPreferences = function(name) {
-        /*
-        				Initialize views only once
-        */
-
         var view;
+        name = name + 'ParamsView';
         view = void 0;
-        if (typeof PreferencesViews[name] === 'undefined') {
-          switch (name) {
-            case 'send':
-              view = new PreferencesSendView();
-              break;
-            case 'params':
-              view = new PreferencesParamsView();
-              break;
-            case 'team':
-              view = new PreferencesTeamView();
-          }
-        } else {
-          PreferencesViews[name].render();
+        switch (name) {
+          case 'sendParamsView':
+            view = new PreferencesSendView();
+            break;
+          case 'paramsParamsView':
+            view = new PreferencesParamsView();
+            break;
+          case 'teamParamsView':
+            view = new PreferencesTeamView();
         }
-        return PreferencesViews[name] = view;
+        ViewsLiteral[name] = view;
+        if (ViewsLiteral.sendParamsView) {
+          ViewsLiteral.sendParamsView.undelegateEvents();
+        }
+        if (ViewsLiteral.paramsParamsView) {
+          ViewsLiteral.paramsParamsView.undelegateEvents();
+        }
+        if (ViewsLiteral.teamParamsView) {
+          ViewsLiteral.teamParamsView.undelegateEvents();
+        }
+        ViewsLiteral[name].initialize();
+        ViewsLiteral[name].delegateEvents();
+        return ViewsLiteral[name].render();
       };
 
       PreferencesView.prototype.render = function() {
@@ -406,10 +410,35 @@
         return SuppliersSelectorView.__super__.constructor.apply(this, arguments);
       }
 
+      SuppliersSelectorView.prototype.current = void 0;
+
       SuppliersSelectorView.prototype.initialize = function() {
         this.collection = new SupplierList();
         this.collection.fetch();
         return this.collection.on('reset', this.render, this);
+      };
+
+      SuppliersSelectorView.prototype.events = function() {
+        return {
+          'change select': 'change'
+        };
+      };
+
+      SuppliersSelectorView.prototype.change = function(e) {
+        this.trigger('changeValue');
+        return this.current = $(e.target).val();
+      };
+
+      SuppliersSelectorView.prototype.getCurrentId = function() {
+        if (this.current) {
+          return this.current;
+        } else {
+          return $(this.el).find('select option:selected').val();
+        }
+      };
+
+      SuppliersSelectorView.prototype.getCurrent = function() {
+        return this.collection.get(this.getCurrentId());
       };
 
       SuppliersSelectorView.prototype.render = function() {
@@ -726,8 +755,9 @@
       };
 
       DayOrderView.prototype.render = function() {
-        var userOrders;
+        var dayTotal, userOrders;
         userOrders = {};
+        dayTotal = 0;
         if (this.collection) {
           _.each(this.collection.models, function(item) {
             if (!userOrders[item.attributes.user._id]) {
@@ -739,13 +769,15 @@
             }
             userOrders[item.attributes.user._id].user = item.attributes.user;
             userOrders[item.attributes.user._id].order.push(item.attributes);
-            return userOrders[item.attributes.user._id].total += item.attributes.price * item.attributes.quantity;
+            userOrders[item.attributes.user._id].total += item.attributes.price * item.attributes.quantity;
+            return dayTotal += item.attributes.price * item.attributes.quantity;
           });
         }
         $(this.$el).html(_.template($('#day-order-template').html(), {
           currentDay: this.attributes.currentDay,
           order: this.model,
-          userOrders: userOrders
+          userOrders: userOrders,
+          dayTotal: dayTotal
         }));
         return this;
       };
@@ -768,12 +800,19 @@
       };
 
       DayOrderView.prototype.editOrder = function(e) {
+        var orderLine, userId;
         e.preventDefault();
-        console.log($(e.target).attr('userId'));
+        orderLine = $(e.target);
+        if (orderLine.attr('userId')) {
+          userId = orderLine.attr('userId');
+        } else {
+          userId = orderLine.parent().attr('userId');
+        }
         return new OrderView({
           model: this.model,
           attributes: {
-            currentDay: this.attributes.currentDay
+            currentDay: this.attributes.currentDay,
+            userId: userId
           }
         });
       };
@@ -892,20 +931,33 @@
       OrderView.prototype.initialize = function() {
         this.users = new UserList();
         this.users.fetch();
+        this.userOrder = new UserOrderList();
+        if (this.attributes.userId && this.model) {
+          this.userOrder.url = '/user_orders/' + this.attributes.userId + '/' + this.model.attributes.id;
+          this.userOrder.fetch();
+        }
         this.dishes = new DishList();
         this.dishes.fetch();
-        this.userOrder = new UserOrderList();
-        routes.navigate("!/order");
         this.render();
-        return this.dishes.on('reset', this.render, this);
+        this.dishes.on('reset', this.render, this);
+        this.userOrder.on('reset', this.render, this);
+        return this.on('updateMenu', this.initialize, this);
       };
 
       OrderView.prototype.events = function() {
         return {
           'click .category-dish-name': 'slideToggleMenu',
           'click .save': 'saveOrder',
-          'click .preview': 'previewOrder'
+          'click .preview': 'previewOrder',
+          'change select.user': 'changeUser'
         };
+      };
+
+      OrderView.prototype.changeUser = function(e) {
+        var userId;
+        userId = $(e.target).val();
+        this.attributes.userId = userId;
+        return this.trigger('updateMenu');
       };
 
       OrderView.prototype.slideToggleMenu = function(e) {
@@ -923,7 +975,6 @@
         userId = orderBlock.find('.user').val();
         _.each(orderBlock.find('.dish-order'), function(item) {
           if ($(item).val() > 0) {
-            console.log(_this.model);
             return orderedDishes.push({
               dish: $(item).attr('dishId'),
               quantity: $(item).val(),
@@ -934,6 +985,7 @@
             });
           }
         });
+        this.userOrder.url = '/user_orders/';
         this.userOrder.create(orderedDishes);
         return this.close();
       };
@@ -943,7 +995,7 @@
       };
 
       OrderView.prototype.render = function() {
-        var dishesByCategory;
+        var dishesByCategory, userOrder;
         dishesByCategory = {};
         _.each(this.dishes.models, function(model) {
           if (!dishesByCategory[model.attributes.category]) {
@@ -951,13 +1003,27 @@
           }
           return dishesByCategory[model.attributes.category].push(model);
         });
-        return $(this.el).html(_.template($('#order-template').html(), {
+        userOrder = {};
+        if (this.userOrder) {
+          _.each(this.userOrder.models, function(userOrderModel) {
+            if (!userOrder[userOrderModel.attributes.dish]) {
+              userOrder[userOrderModel.attributes.dish] = [];
+            }
+            return userOrder[userOrderModel.attributes.dish] = userOrderModel.attributes;
+          });
+        }
+        $(this.el).html(_.template($('#order-template').html(), {
           model: this.model,
           dishesByCategory: dishesByCategory,
           currentDay: this.attributes.currentDay,
           dishCategories: this.dishCategories,
-          users: this.users
+          users: this.users,
+          userOrder: userOrder
         }));
+        if (this.attributes.userId) {
+          $('#main .order .user').val(this.attributes.userId);
+        }
+        return this;
       };
 
       OrderView.prototype.close = function() {

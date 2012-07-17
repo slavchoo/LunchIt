@@ -58,12 +58,36 @@
 	.day-order {
 		border:1px solid #ccc;
 		padding: 10px;
-		margin: 5px 0 20px;
+		margin-top:10px;
 		height: 150px;
+
+		.user-order {
+			cursor: pointer;
+			padding: 5px;
+			margin: 5px 0;
+			div {
+				display: inline-block;
+			}
+			.name {
+				width: 50%;
+			}
+			.quantity {
+				width: 16%;
+			}
+			.total {
+				width: 30%;
+				text-align: right;
+			}
+		}
 	}
 	.day-order-block {
-		margin-right: 50px;
+		margin: 5px 50px 20px 0;
 		display: inline-block;
+		span.day-total {
+			margin-top:5px;
+			text-align: right;
+			display: block;
+		}
 		.info {
 
 			span {
@@ -113,23 +137,5 @@
 	}
 }
 
-.day-order {
-	.user-order {
-		cursor: pointer;
-		padding: 5px;
-		margin: 5px 0;
-		div {
-			display: inline-block;
-		}
-		.name {
-			width: 50%;
-		}
-		.quantity {
-			width: 16%;
-		}
-		.total {
-			width: 30%;
-			text-align: right;
-		}
-	}
-}
+
+

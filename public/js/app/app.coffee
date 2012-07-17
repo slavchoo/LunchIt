@@ -3,6 +3,7 @@ _.templateSettings = {
 	interpolate : /<@=([\s\S]+?)@>/g,
 	escape      : /<@-([\s\S]+?)@>/g
 };
+ViewsLiteral = {}
 
 $ ->
 	class Route extends Backbone.Router
@@ -69,23 +70,22 @@ $ ->
 		supplierContainer: '#supplier'
 
 		initialize: ->
-			@collection = new SupplierList()
-			@collection.fetch()
-			@supplierId = $(@supplierContainer).val()
+			ViewsLiteral.suppliersView.collection.on "reset", @render, @
+			ViewsLiteral.suppliersView.on 'changeValue', @render, @
 
-			@collection.on "reset", @render, @
+#		destroyBind: ->
+#			ViewsLiteral.suppliersView.collection.off "reset", @render, @
+#			ViewsLiteral.suppliersView.off 'change', @render, @
 
 		events: ->
 			'click button': 'save'
 			'click #add-supplier': 'addSupplier'
 
 		render: ->
-			@model = @collection.get('4ffc462b7293dd8c12000001')
-			$(@el).html(_.template $('#preferences-send-template').html())
-			preferencesFields = $(@el)
+			@model = ViewsLiteral.suppliersView.getCurrent()
 			if @model
-				_.each @model.attributes, (item, key) =>
-					preferencesFields.find('[name="' + key + '"]').val(item)
+				$(@el).html(_.template $('#preferences-send-template').html(), {model: @model.attributes})
+
 			return @
 
 		save: ->
@@ -105,17 +105,19 @@ $ ->
 		el: "#preferences-form"
 
 		initialize: ->
-			@collection = new SupplierList()
-			@collection.fetch()
+			ViewsLiteral.suppliersView.collection.on "reset", @render, @
+			ViewsLiteral.suppliersView.on 'changeValue', @render, @
 
-			@collection.on "reset", @render, @
+#		destroyBind: ->
+#			ViewsLiteral.suppliersView.collection.off "reset", @render, @
+#			ViewsLiteral.suppliersView.off 'change', @render, @
 
 		events: ->
 			'click button': 'save'
 
 		render: ->
-			@model = @collection.get('4ffc462b7293dd8c12000001')
-			$(@el).html(_.template $('#preferences-params-template').html())
+			@model = ViewsLiteral.suppliersView.getCurrent()
+			$(@el).html(_.template $('#preferences-params-template').html(), {model: @model})
 			preferencesFields = $(@el)
 			if (@model)
 				_.each @model.attributes, (item, key) =>
@@ -199,11 +201,11 @@ $ ->
 	#preferences page, that is container for preferences form
 	class PreferencesView extends Backbone.View
 		el: "#main"
-		supplierId: undefined
 
 		initialize: ->
 			@render()
 			$(@el).find('ul li:eq(0)').addClass 'active' #set first element selected
+			ViewsLiteral.suppliersView = new SuppliersSelectorView({el: 'div.suppliers'})
 			@loadPreferences('send')
 
 		events: ->
@@ -220,18 +222,24 @@ $ ->
 
 
 		loadPreferences: (name) ->
-			###
-				Initialize views only once
-			###
+			name = name + 'ParamsView'
 			view = undefined
-			if (typeof(PreferencesViews[name]) == 'undefined')
-				switch name
-					when 'send' then view = new PreferencesSendView()
-					when 'params' then view = new PreferencesParamsView()
-					when 'team' then view = new PreferencesTeamView()
-			else
-				PreferencesViews[name].render()
-			PreferencesViews[name] = view
+			#if (typeof(ViewsLiteral[name]) == 'undefined')
+			switch name
+				when 'sendParamsView' then view = new PreferencesSendView()
+				when 'paramsParamsView' then view = new PreferencesParamsView()
+				when 'teamParamsView' then view = new PreferencesTeamView()
+			ViewsLiteral[name] = view
+
+			if ViewsLiteral.sendParamsView
+				ViewsLiteral.sendParamsView.undelegateEvents()
+			if ViewsLiteral.paramsParamsView
+				ViewsLiteral.paramsParamsView.undelegateEvents()
+
+			ViewsLiteral.teamParamsView.undelegateEvents() if ViewsLiteral.teamParamsView
+			ViewsLiteral[name].initialize()
+			ViewsLiteral[name].delegateEvents()
+			ViewsLiteral[name].render()
 
 		render: ->
 			$(@el).html(_.template $('#preferences-template').html())
@@ -242,10 +250,28 @@ $ ->
 
 
 	class SuppliersSelectorView extends Backbone.View
+		current: undefined
+
 		initialize:->
 			@collection = new SupplierList()
 			@collection.fetch()
 			@collection.on 'reset', @render, @
+
+		events: ->
+			'change select': 'change'
+
+		change: (e) ->
+			@trigger 'changeValue'
+			@current = $(e.target).val()
+
+		getCurrentId: ->
+			if @current
+				@current
+			else
+				$(@el).find('select option:selected').val()
+
+		getCurrent: ->
+			@collection.get @getCurrentId()
 
 		render: ->
 			$(@el).html(_.template $('#supplier-selector-template').html(), ({suppliers: @collection.models}))
@@ -435,14 +461,16 @@ $ ->
 
 		render: ->
 			userOrders = {}
+			dayTotal = 0
 			if (@collection)
 				_.each @collection.models, (item) ->
 					userOrders[item.attributes.user._id] = {user: {}, order: [], total: 0} if !userOrders[item.attributes.user._id]
 					userOrders[item.attributes.user._id].user = item.attributes.user
 					userOrders[item.attributes.user._id].order.push(item.attributes)
 					userOrders[item.attributes.user._id].total += item.attributes.price * item.attributes.quantity
+					dayTotal += item.attributes.price * item.attributes.quantity
 
-			$(@$el).html _.template $('#day-order-template').html(), {currentDay: @attributes.currentDay, order: @model, userOrders: userOrders}
+			$(@$el).html _.template $('#day-order-template').html(), {currentDay: @attributes.currentDay, order: @model, userOrders: userOrders, dayTotal: dayTotal}
 			@
 
 		events: ->
@@ -535,22 +563,31 @@ $ ->
 		initialize: ->
 			@users = new UserList()
 			@users.fetch()
-			@dishes = new DishList()
-			@dishes.fetch()
 
 			@userOrder = new UserOrderList()
 			if @attributes.userId && @model
-				@userOrder.url = '/user_order/' + @attributes.userId + '/' + @model.attributes.id
+				@userOrder.url = '/user_orders/' + @attributes.userId + '/' + @model.attributes.id
 				@userOrder.fetch()
 
-			routes.navigate("!/order");
+			@dishes = new DishList()
+			@dishes.fetch()
+
 			@render()
 			@dishes.on 'reset', @render, @
+			@userOrder.on 'reset', @render, @
+			@.on 'updateMenu', @initialize, @
 
 		events: ->
 			'click .category-dish-name': 'slideToggleMenu'
 			'click .save': 'saveOrder'
-			'click .preview': 'previewOrder'
+			'click .preview': 'previewOrder',
+			'change select.user': 'changeUser'
+
+		changeUser: (e) ->
+			userId = $(e.target).val()
+			@attributes.userId = userId
+			@trigger 'updateMenu'
+
 
 		slideToggleMenu: (e)->
 			e.preventDefault()
@@ -564,7 +601,6 @@ $ ->
 			userId = orderBlock.find('.user').val()
 			_.each orderBlock.find('.dish-order'), (item) =>
 				if $(item).val() > 0
-					console.log @model
 					orderedDishes.push({
 						dish: $(item).attr('dishId')
 						quantity: $(item).val()
@@ -574,6 +610,7 @@ $ ->
 						date: moment(@attributes.currentDay).unix()
 					})
 
+			@userOrder.url = '/user_orders/'
 			@userOrder.create(orderedDishes)
 			@close()
 
@@ -586,7 +623,17 @@ $ ->
 				dishesByCategory[model.attributes.category] = [] if !dishesByCategory[model.attributes.category]
 				dishesByCategory[model.attributes.category].push(model)
 
-			$(@el).html _.template $('#order-template').html(), {model: @model, dishesByCategory: dishesByCategory, currentDay: @attributes.currentDay, dishCategories: @dishCategories, users: @users}
+			userOrder = {}
+			if @userOrder
+				_.each @userOrder.models, (userOrderModel) ->
+					userOrder[userOrderModel.attributes.dish] = [] if !userOrder[userOrderModel.attributes.dish]
+					userOrder[userOrderModel.attributes.dish] = userOrderModel.attributes
+
+
+			$(@el).html _.template $('#order-template').html(), {model: @model, dishesByCategory: dishesByCategory, currentDay: @attributes.currentDay, dishCategories: @dishCategories, users: @users, userOrder: userOrder}
+			if @attributes.userId
+				$('#main .order .user').val(@attributes.userId)
+			@
 
 		close: ->
 			new WeekOrderView()

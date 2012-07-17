@@ -12,7 +12,6 @@ class UserOrderController
 
 	create: (req, res) ->
 		orderParams = req.body[0]
-		console.log orderParams
 		if !orderParams.order
 			order = new Order({
 				supplier: orderParams.supplier
@@ -22,6 +21,12 @@ class UserOrderController
 			orderId = order._id
 		else
 			orderId = orderParams.order
+
+
+		#remove all models and create new form request
+		UserOrder.find({'order': orderId, 'user': orderParams.user}).exec (err, models) ->
+			_.each models, (model) ->
+				model.remove()
 
 		_.each req.body, (item) ->
 			Dish.findById(item.dish).exec (err, doc) =>
@@ -68,7 +73,7 @@ class UserOrderController
 
 
 	userOrder: (req, res) ->
-		UserOrder.find({'order': req.params.orderId, 'user': req.params.userId}).populate('user').exec (err, modules) ->
+		UserOrder.find({'order': req.params.orderId, 'user': req.params.userId}).populate('user').exec (err, models) ->
 			if !err
 				res.send models
 			else

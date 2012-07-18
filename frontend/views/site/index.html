@@ -3,8 +3,7 @@
 		<div class="suppliers"></div>
 
 		<ul class="nav nav-tabs" id="preferences-tabs">
-			<li form-name="send"><a href="#">Отправка</a></li>
-			<li form-name="params"><a href="#">Параметры</a></li>
+
 			<li form-name="team"><a href="#">Команда</a></li>
 		</ul>
 		<div id="preferences-form"></div>
@@ -20,17 +19,17 @@
 </script>
 
 <script type="text/template" id="suppliers-template">
-    <div class="suppliers-block">
+    <div class="suppliers-list">
         <ul></ul>
+
+	    <a href="#" class="add btn btn-success">Добавить</a>
     </div>
 
 	<div class="supplier-form"></div>
-
-	<a href="#" class="add btn btn-success">Добавить</a>
 </script>
 
 <script type="text/template" id="supplier-template">
-    <span><@=name@></span> <a href="#" class="edit btn btn-info">Редактировать</a> <a href="#" class="delete btn btn-important">Удалить</a>
+    <span><@=name@></span> <a href="#" class="edit">Редактировать</a> / <a href="#" class="delete">Удалить</a>
 </script>
 
 
@@ -66,6 +65,20 @@
 							<input type="text" name="subject"/>
 						</div>
 					</div>
+
+					<div class="control-group">
+						<label class="control-label">Телефон</label>
+						<div class="controls">
+							<input type="text" name="phone"/>
+						</div>
+					</div>
+
+					<div class="control-group">
+						<label class="control-label">Минимальный заказ</label>
+						<div class="controls">
+							<input type="text" name="min_order"/>
+						</div>
+					</div>
 				</div>
 				<div class="span4">
 					<div class="control-group">
@@ -74,10 +87,17 @@
 							<textarea name="template"></textarea>
 						</div>
 					</div>
+
+					<div class="control-group">
+						<label class="control-label">Заметка</label>
+						<div class="controls">
+							<textarea name="note"></textarea>
+						</div>
+					</div>
 				</div>
 			</div>
 			<div class="row">
-				<button type="submit" class="btn">Сохранить</button>
+				<button type="submit" class="btn btn-success">Сохранить</button>
 			</div>
 		</fieldset>
 	</div>
@@ -262,6 +282,7 @@
 	<div class="suppliers"></div>
 	<div id="week-switcher"></div>
 	<div id="week-order"></div>
+	<div id="full-order-popup"></div>
 </script>
 
 <script type="text/template" id="week-switcher-template">
@@ -292,6 +313,7 @@
 			<@ } @>
 		</div>
 		<@ if (order) { @>
+			<a href="#" class="preview">Просмотр</a>
 			<span class="day-total">Итого: <@= dayTotal@> руб</span>
 		<@ } @>
 	</div>
@@ -332,5 +354,40 @@
 		<@ } else { @>
 			<h2>Меню пустое</h2>
 		<@ } @>
+	</div>
+</script>
+
+
+<script type="text/template" id="full-order-template">
+	<div class="modal hide" id="full-order-form">
+		<form>
+			<div class="modal-header">
+				<button type="button" class="close" data-dismiss="modal">×</button>
+				<h3>Заказ на <@=date@></h3>
+			</div>
+			<div class="modal-body">
+				<@ _.each(fullOrderDishes, function(dishes, categoryId) { @>
+					<div class="category-dish-name">
+						<@=dishCategories[categoryId]@>
+					</div>
+					<table class="">
+						<@ _.each(dishes, function(dish, dishId) { @>
+						<tr>
+							<td class="dish-name span4"><@=dish.name@></td>
+							<td class="span1"><@=dish.quantity@></td>
+							<td><input quantity="<@=dish.quantity@>" dishId="<@=dish.id@>" name="price" value="<@= dish.price @>"/></td>
+						</tr>
+						<@ }) @>
+					</table>
+				<@ }) @>
+			</div>
+		</form>
+		<div class="modal-footer">
+			<div class="total">
+				Тотал: <span class="sum"><@=total@></span> руб.
+			</div>
+			<a href="#" class="btn cancel" data-dismiss="modal">Закрыть</a>
+			<a href="#" class="btn btn-primary save">Сохранить</a>
+		</div>
 	</div>
 </script>

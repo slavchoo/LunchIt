@@ -65,7 +65,7 @@ class UserOrderController
 				console.log err
 
 	orderDishes: (req, res) ->
-		UserOrder.find({'order': req.params.id}).populate('user').exec (err, models) ->
+		UserOrder.find({'order': req.params.id}).populate('user').populate('dish').exec (err, models) ->
 			if !err
 				res.send models
 			else

@@ -154,7 +154,7 @@ $ ->
 			userNameField = $(".team-user-form").find("input.user-name")
 			userName = userNameField.val()
 			if !_.isEmpty(userName)
-				usersData.push {name: userName}
+
 				@collection.create {name: userName}
 				userNameField.val ''
 
@@ -174,9 +174,7 @@ $ ->
 			removedUsersData = removedUser.attributes
 
 			#remove user from main array
-			_.each usersData, (user) =>
-				if _.isEqual user, removedUsersData
-					usersData.splice _.indexOf(usersData, user), 1
+
 
 
 	class PreferencesUserView extends Backbone.View
@@ -204,8 +202,8 @@ $ ->
 			@render()
 			$(@el).find('ul li:eq(0)').addClass 'active'
 			#set first element selected
-			ViewsLiteral.suppliersView = new SuppliersSelectorView({el: 'div.suppliers'})
-			@loadPreferences('send')
+			#ViewsLiteral.suppliersView = new SuppliersSelectorView({el: 'div.suppliers'})
+			@loadPreferences('team')
 
 		events: ->
 			'click #preferences-tabs li': 'switchTab',
@@ -457,6 +455,7 @@ $ ->
 				@collection.fetch()
 
 				@collection.on 'reset', @render, @
+				@collection.on 'update', @initialize, @
 
 		render: ->
 			userOrders = {}
@@ -475,6 +474,7 @@ $ ->
 		events: ->
 			'click .add-order': 'addOrder'
 			'click .user-order': 'editOrder'
+			'click .preview': 'preview'
 
 		addOrder: (e)->
 			e.preventDefault()
@@ -487,8 +487,77 @@ $ ->
 				userId = orderLine.attr('userId')
 			else
 				userId = orderLine.parent().attr('userId')
-			new OrderView({model: @model, attributes:
-				{currentDay: @attributes.currentDay, userId: userId}})
+			new OrderView({model: @model, attributes:	{currentDay: @attributes.currentDay, userId: userId}})
+
+		preview: (e) ->
+			e.preventDefault()
+			ViewsLiteral.fullOrderPopup = new FullOrderView({collection: @collection, model: @model, attributes: {currentDay: @attributes.currentDay}})
+			ViewsLiteral.fullOrderPopup.render()
+
+
+	class FullOrderView extends Backbone.View
+		el: '#full-order-popup'
+		dishCategories:
+			1: 'Супы'
+			2: 'Мясо'
+			3: 'Гарниры'
+			4: 'Салаты'
+			5: 'Блины'
+			6: 'Другое'
+			7: 'Контейнеры'
+
+		initialize: ->
+
+
+
+		events: ->
+			'click .save': 'save'
+			'keyup input[name="price"]': 'calculateTotal'
+
+		render: ->
+			@.delegateEvents()
+			fullOrderDishes = {}
+			total = 0
+			_.each @collection.models, (dish) ->
+				fullOrderDishes[dish.attributes.dish.category] = {} if !fullOrderDishes[dish.attributes.dish.category]
+				fullOrderDishes[dish.attributes.dish.category][dish.attributes.dish._id] = {} if !fullOrderDishes[dish.attributes.dish.category][dish.attributes.dish._id]
+				fullOrderDishes[dish.attributes.dish.category][dish.attributes.dish._id].quantity = 0 if !fullOrderDishes[dish.attributes.dish.category][dish.attributes.dish._id].quantity
+
+				fullOrderDishes[dish.attributes.dish.category][dish.attributes.dish._id].quantity += dish.attributes.quantity
+				fullOrderDishes[dish.attributes.dish.category][dish.attributes.dish._id].name = dish.attributes.dish.name
+				fullOrderDishes[dish.attributes.dish.category][dish.attributes.dish._id].price = dish.attributes.price
+				fullOrderDishes[dish.attributes.dish.category][dish.attributes.dish._id].id = dish.attributes.dish._id
+
+				total += dish.attributes.quantity * dish.attributes.price
+
+			$(@el).html _.template $('#full-order-template').html(), {dishCategories: @dishCategories, fullOrderDishes: fullOrderDishes, date: @attributes.currentDay.format('DD MMMM'), total: total}
+			$('#full-order-form').modal({backdrop: false})
+			$('#full-order-form').on 'hidden', () =>
+				@hide()
+
+		save: (e) ->
+			e.preventDefault()
+			formData = {}
+			_.each $(@el).find('input[name="price"]'), (item) ->
+				formData[$(item).attr('dishId')] = $(item).val()
+
+			@collection.url = '/orders/' + @model.id
+			@collection.create(formData)
+			@collection.trigger 'update'
+			@hide()
+
+		hide: ->
+			delete ViewsLiteral.fullOrderPopup
+			@.undelegateEvents()
+
+
+		calculateTotal: (e)->
+			total = 0
+			_.each $(@el).find('input[name="price"]'), (item) ->
+				total += $(item).attr('quantity') * $(item).val()
+
+			$(@el).find('div.total .sum').text(total)
+
 
 
 	class WeekSwitcherView extends Backbone.View
@@ -662,11 +731,12 @@ $ ->
 				_.each @collection.models, (item)=>
 					@renderSupplier item, @collection
 			else
-				$('.suppliers-block').html('<h2>Hи одного поставщика не добавлено</h2>')
+				$('.suppliers-list').html('<h2>Hи одного поставщика не добавлено</h2>')
+			$('.suppliers-list a.add').show()
 
 		renderSupplier: (model, collection)->
 			supplierView = new SupplierView model: model, collection: collection
-			$('.suppliers-block').append supplierView.render().el
+			$('.suppliers-list ul').append supplierView.render().el
 
 	class EditSupplierView extends Backbone.View
 		el: '.supplier-form'
@@ -678,7 +748,8 @@ $ ->
 			'click button': 'save'
 
 		render: ->
-			console.log @model
+			$('.suppliers-list ul').empty()
+			$('.suppliers-list a.add').hide()
 			$(@el).html _.template $('#supplier-form-template').html()
 			container = $(@el)
 			if @model
@@ -696,14 +767,10 @@ $ ->
 				@model.save formData
 			@remove()
 
-			
-
 			ViewsLiteral.suppliersPageView.updateSuppliers()
-
 
 	class SupplierView extends Backbone.View
 		tagName: 'li'
-
 		events: ->
 			'click .edit': 'edit'
 

@@ -1,4 +1,5 @@
 moment = require 'moment'
+_ = require "underscore"
 
 class OrderController
 	list: (req, res) ->
@@ -24,6 +25,18 @@ class OrderController
 			else
 				console.log err
 		res.send model
+
+	updateOrder: (req, res) ->
+		UserOrder.find({'order': req.params.id}).exec (err, models) ->
+			if !err
+				_.each models, (model) ->
+					model.price = req.body[model.dish]
+					model.save()
+					Dish.findById(model.dish).exec (err, dishItem) ->
+						dishItem.price = model.price
+						dishItem.save()
+			else
+				console.log err
 
 
 module.exports = new OrderController()

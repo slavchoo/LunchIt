@@ -14,6 +14,8 @@ class SupplierController
 			subject: req.body.subject
 			template: req.body.template
 			min_order: req.body.min_order
+			note: req.body.note
+			phone: req.body.phone
 		}
 		supplier.save (err) ->
 			if !err
@@ -31,6 +33,8 @@ class SupplierController
 			supplier.subject = req.body.subject
 			supplier.template = req.body.template
 			supplier.min_order = req.body.min_order
+			supplier.note = req.body.note
+			supplier.phone = req.body.phone
 			supplier.save (err) ->
 				if !err
 					console.log 'Supplier updated'
@@ -39,7 +43,6 @@ class SupplierController
 				res.send supplier
 
 	delete: (req, res) ->
-		console.log req.params.id
 		Supplier.findById req.params.id, (err, supplier) ->
 			supplier.remove (err) ->
 				if !err

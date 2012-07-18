@@ -12,7 +12,7 @@
   ViewsLiteral = {};
 
   $(function() {
-    var AccessorisMenuView, AppMenuView, DayOrderView, DishesMenuView, IndexView, MenuDishFormView, MenuView, OrderView, PreferencesParamsView, PreferencesSendView, PreferencesTeamView, PreferencesUserView, PreferencesView, PreferencesViews, Route, SuppliersSelectorView, Views, WeekDayOrderView, WeekOrderView, WeekSwitcherView, routes;
+    var AccessorisMenuView, AppMenuView, DayOrderView, DishesMenuView, EditSupplierView, FullOrderView, IndexView, MenuDishFormView, MenuView, OrderView, PreferencesParamsView, PreferencesSendView, PreferencesTeamView, PreferencesUserView, PreferencesView, PreferencesViews, Route, SupplierView, SuppliersSelectorView, SuppliersView, Views, WeekDayOrderView, WeekOrderView, WeekSwitcherView, routes;
     Route = (function(_super) {
 
       __extends(Route, _super);
@@ -25,7 +25,7 @@
         "": "index",
         "!/": "index",
         "!/menu": "menu",
-        "!/suppliers": "supplier",
+        "!/suppliers": "suppliers",
         "!/preferences": "preferences",
         "!/week-order": "weekOrder",
         "!/order": 'order'
@@ -43,7 +43,9 @@
         return new MenuView();
       };
 
-      Route.prototype.suppliers = function() {};
+      Route.prototype.suppliers = function() {
+        return ViewsLiteral.suppliersPageView = new SuppliersView();
+      };
 
       Route.prototype.preferences = function() {
         return new PreferencesView();
@@ -104,7 +106,7 @@
 
     })(Backbone.View);
     /*
-    	Preferences view
+    		Preferences view
     */
 
     PreferencesSendView = (function(_super) {
@@ -251,9 +253,6 @@
         userNameField = $(".team-user-form").find("input.user-name");
         userName = userNameField.val();
         if (!_.isEmpty(userName)) {
-          usersData.push({
-            name: userName
-          });
           this.collection.create({
             name: userName
           });
@@ -279,14 +278,8 @@
       };
 
       PreferencesTeamView.prototype.removeUser = function(removedUser) {
-        var removedUsersData,
-          _this = this;
-        removedUsersData = removedUser.attributes;
-        return _.each(usersData, function(user) {
-          if (_.isEqual(user, removedUsersData)) {
-            return usersData.splice(_.indexOf(usersData, user), 1);
-          }
-        });
+        var removedUsersData;
+        return removedUsersData = removedUser.attributes;
       };
 
       return PreferencesTeamView;
@@ -339,10 +332,7 @@
       PreferencesView.prototype.initialize = function() {
         this.render();
         $(this.el).find('ul li:eq(0)').addClass('active');
-        ViewsLiteral.suppliersView = new SuppliersSelectorView({
-          el: 'div.suppliers'
-        });
-        return this.loadPreferences('send');
+        return this.loadPreferences('team');
       };
 
       PreferencesView.prototype.events = function() {
@@ -750,7 +740,8 @@
           this.collection = new UserOrderList();
           this.collection.url = '/user_orders/' + this.model.id;
           this.collection.fetch();
-          return this.collection.on('reset', this.render, this);
+          this.collection.on('reset', this.render, this);
+          return this.collection.on('update', this.initialize, this);
         }
       };
 
@@ -785,7 +776,8 @@
       DayOrderView.prototype.events = function() {
         return {
           'click .add-order': 'addOrder',
-          'click .user-order': 'editOrder'
+          'click .user-order': 'editOrder',
+          'click .preview': 'preview'
         };
       };
 
@@ -817,7 +809,114 @@
         });
       };
 
+      DayOrderView.prototype.preview = function(e) {
+        e.preventDefault();
+        ViewsLiteral.fullOrderPopup = new FullOrderView({
+          collection: this.collection,
+          model: this.model,
+          attributes: {
+            currentDay: this.attributes.currentDay
+          }
+        });
+        return ViewsLiteral.fullOrderPopup.render();
+      };
+
       return DayOrderView;
+
+    })(Backbone.View);
+    FullOrderView = (function(_super) {
+
+      __extends(FullOrderView, _super);
+
+      function FullOrderView() {
+        return FullOrderView.__super__.constructor.apply(this, arguments);
+      }
+
+      FullOrderView.prototype.el = '#full-order-popup';
+
+      FullOrderView.prototype.dishCategories = {
+        1: 'Супы',
+        2: 'Мясо',
+        3: 'Гарниры',
+        4: 'Салаты',
+        5: 'Блины',
+        6: 'Другое',
+        7: 'Контейнеры'
+      };
+
+      FullOrderView.prototype.initialize = function() {};
+
+      FullOrderView.prototype.events = function() {
+        return {
+          'click .save': 'save',
+          'keyup input[name="price"]': 'calculateTotal'
+        };
+      };
+
+      FullOrderView.prototype.render = function() {
+        var fullOrderDishes, total,
+          _this = this;
+        this.delegateEvents();
+        fullOrderDishes = {};
+        total = 0;
+        _.each(this.collection.models, function(dish) {
+          if (!fullOrderDishes[dish.attributes.dish.category]) {
+            fullOrderDishes[dish.attributes.dish.category] = {};
+          }
+          if (!fullOrderDishes[dish.attributes.dish.category][dish.attributes.dish._id]) {
+            fullOrderDishes[dish.attributes.dish.category][dish.attributes.dish._id] = {};
+          }
+          if (!fullOrderDishes[dish.attributes.dish.category][dish.attributes.dish._id].quantity) {
+            fullOrderDishes[dish.attributes.dish.category][dish.attributes.dish._id].quantity = 0;
+          }
+          fullOrderDishes[dish.attributes.dish.category][dish.attributes.dish._id].quantity += dish.attributes.quantity;
+          fullOrderDishes[dish.attributes.dish.category][dish.attributes.dish._id].name = dish.attributes.dish.name;
+          fullOrderDishes[dish.attributes.dish.category][dish.attributes.dish._id].price = dish.attributes.price;
+          fullOrderDishes[dish.attributes.dish.category][dish.attributes.dish._id].id = dish.attributes.dish._id;
+          return total += dish.attributes.quantity * dish.attributes.price;
+        });
+        $(this.el).html(_.template($('#full-order-template').html(), {
+          dishCategories: this.dishCategories,
+          fullOrderDishes: fullOrderDishes,
+          date: this.attributes.currentDay.format('DD MMMM'),
+          total: total
+        }));
+        $('#full-order-form').modal({
+          backdrop: false
+        });
+        return $('#full-order-form').on('hidden', function() {
+          return _this.hide();
+        });
+      };
+
+      FullOrderView.prototype.save = function(e) {
+        var formData;
+        e.preventDefault();
+        formData = {};
+        _.each($(this.el).find('input[name="price"]'), function(item) {
+          return formData[$(item).attr('dishId')] = $(item).val();
+        });
+        this.collection.url = '/orders/' + this.model.id;
+        this.collection.create(formData);
+        this.collection.trigger('update');
+        return this.hide();
+      };
+
+      FullOrderView.prototype.hide = function() {
+        delete ViewsLiteral.fullOrderPopup;
+        return this.undelegateEvents();
+      };
+
+      FullOrderView.prototype.calculateTotal = function(e) {
+        var total;
+        total = 0;
+        _.each($(this.el).find('input[name="price"]'), function(item) {
+          return total += $(item).attr('quantity') * $(item).val();
+        });
+        return $(this.el).find('div.total .sum').text(total);
+      };
+
+      return FullOrderView;
 
     })(Backbone.View);
     WeekSwitcherView = (function(_super) {
@@ -1031,6 +1130,148 @@
       };
 
       return OrderView;
+
+    })(Backbone.View);
+    SuppliersView = (function(_super) {
+
+      __extends(SuppliersView, _super);
+
+      function SuppliersView() {
+        return SuppliersView.__super__.constructor.apply(this, arguments);
+      }
+
+      SuppliersView.prototype.el = "#main";
+
+      SuppliersView.prototype.initialize = function() {
+        return this.updateSuppliers();
+      };
+
+      SuppliersView.prototype.updateSuppliers = function() {
+        this.collection = new SupplierList();
+        this.collection.fetch();
+        return this.collection.on('reset', this.render, this);
+      };
+
+      SuppliersView.prototype.events = function() {
+        return {
+          'click .add': 'addSupplier'
+        };
+      };
+
+      SuppliersView.prototype.addSupplier = function(e) {
+        e.preventDefault();
+        return new EditSupplierView({
+          collection: this.collection,
+          model: this.model
+        });
+      };
+
+      SuppliersView.prototype.render = function() {
+        var _this = this;
+        $(this.el).html(_.template($('#suppliers-template').html()));
+        if (this.collection.models.length) {
+          _.each(this.collection.models, function(item) {
+            return _this.renderSupplier(item, _this.collection);
+          });
+        } else {
+          $('.suppliers-list').html('<h2>Hи одного поставщика не добавлено</h2>');
+        }
+        return $('.suppliers-list a.add').show();
+      };
+
+      SuppliersView.prototype.renderSupplier = function(model, collection) {
+        var supplierView;
+        supplierView = new SupplierView({
+          model: model,
+          collection: collection
+        });
+        return $('.suppliers-list ul').append(supplierView.render().el);
+      };
+
+      return SuppliersView;
+
+    })(Backbone.View);
+    EditSupplierView = (function(_super) {
+
+      __extends(EditSupplierView, _super);
+
+      function EditSupplierView() {
+        return EditSupplierView.__super__.constructor.apply(this, arguments);
+      }
+
+      EditSupplierView.prototype.el = '.supplier-form';
+
+      EditSupplierView.prototype.initialize = function() {
+        return this.render();
+      };
+
+      EditSupplierView.prototype.events = function() {
+        return {
+          'click button': 'save'
+        };
+      };
+
+      EditSupplierView.prototype.render = function() {
+        var container;
+        $('.suppliers-list ul').empty();
+        $('.suppliers-list a.add').hide();
+        $(this.el).html(_.template($('#supplier-form-template').html()));
+        container = $(this.el);
+        if (this.model) {
+          return _.each(this.model.attributes, function(item, key) {
+            return container.find('[name="' + key + '"]').val(item);
+          });
+        }
+      };
+
+      EditSupplierView.prototype.save = function() {
+        var formData;
+        formData = {};
+        _.each($(this.el).find('input, select, textarea'), function(item) {
+          return formData[$(item).attr('name')] = $(item).val();
+        });
+        if (!this.model) {
+          this.model = new Supplier(formData);
+          this.collection.create(this.model);
+        } else {
+          this.model.save(formData);
+        }
+        this.remove();
+        return ViewsLiteral.suppliersPageView.updateSuppliers();
+      };
+
+      return EditSupplierView;
+
+    })(Backbone.View);
+    SupplierView = (function(_super) {
+
+      __extends(SupplierView, _super);
+
+      function SupplierView() {
+        return SupplierView.__super__.constructor.apply(this, arguments);
+      }
+
+      SupplierView.prototype.tagName = 'li';
+
+      SupplierView.prototype.events = function() {
+        return {
+          'click .edit': 'edit'
+        };
+      };
+
+      SupplierView.prototype.edit = function(e) {
+        e.preventDefault();
+        return new EditSupplierView({
+          model: this.model
+        });
+      };
+
+      SupplierView.prototype.render = function() {
+        $(this.$el).html(_.template($('#supplier-template').html(), this.model.attributes));
+        return this;
+      };
+
+      return SupplierView;
 
     })(Backbone.View);
     routes = new Route();

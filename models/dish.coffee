@@ -10,6 +10,8 @@ DishSchema = new Schema
 		required: true
 	category:
 		type: String
+	supplier:
+		type: String
 	price:
 		type: String
 	createdAt:

@@ -1,4 +1,3 @@
-
 class Supplier extends Backbone.Model
 	initialize: ->
 		console.log "init model supplier"
@@ -35,9 +34,6 @@ class UserOrder extends Backbone.Model
 		response.id = response._id
 		response
 
-
-
-
 window.User = User
 window.Supplier = Supplier
 window.Dish = Dish
@@ -59,6 +55,11 @@ class DishList extends Backbone.Collection
 class OrderList extends Backbone.Collection
 	model: Order
 	url: '/orders'
+
+	getTodayOrder: ->
+		fromDay = moment().format('YYYY-MM-DD')
+		@.url = '/orders/' + fromDay + '/' + moment().add('days', 1).format('YYYY-MM-DD')
+		@.fetch()
 
 class UserOrderList extends Backbone.Collection
 	model: UserOrder

@@ -12,7 +12,7 @@
   ViewsLiteral = {};
 
   $(function() {
-    var AccessorisMenuView, AppMenuView, DayOrderView, DishesMenuView, EditSupplierView, FullOrderView, IndexView, MenuDishFormView, MenuView, OrderView, PreferencesParamsView, PreferencesSendView, PreferencesTeamView, PreferencesUserView, PreferencesView, PreferencesViews, Route, SupplierView, SuppliersSelectorView, SuppliersView, Views, WeekDayOrderView, WeekOrderView, WeekSwitcherView, routes;
+    var AccessorisMenuView, AppMenuView, DayOrderView, DishesMenuView, EditSupplierView, FullOrderView, IndexView, MenuDishFormView, MenuView, OrderButtonView, OrderView, PreferencesParamsView, PreferencesSendView, PreferencesTeamView, PreferencesUserView, PreferencesView, PreferencesViews, Route, SupplierView, SuppliersSelectorView, SuppliersView, Views, WeekDayOrderView, WeekOrderView, WeekSwitcherView, routes;
     Route = (function(_super) {
 
       __extends(Route, _super);
@@ -71,6 +71,11 @@
       AppMenuView.prototype.el = "#app-menu";
 
       AppMenuView.prototype.tagName = 'li';
+
+      AppMenuView.prototype.initialize = function() {
+        ViewsLiteral.orderButtonView = new OrderButtonView();
+        return ViewsLiteral.orderButtonView.updateOrderStatus();
+      };
 
       AppMenuView.prototype.events = function() {
         return {
@@ -1272,6 +1277,89 @@
       };
 
       return SupplierView;
+
+    })(Backbone.View);
+    OrderButtonView = (function(_super) {
+
+      __extends(OrderButtonView, _super);
+
+      function OrderButtonView() {
+        return OrderButtonView.__super__.constructor.apply(this, arguments);
+      }
+
+      OrderButtonView.prototype.buttonSelector = 'header .order-button a';
+
+      OrderButtonView.prototype.el = '.order-button';
+
+      OrderButtonView.prototype.initialize = function() {};
+
+      OrderButtonView.prototype.events = function() {
+        return {
+          'click a': 'sendOrder'
+        };
+      };
+
+      OrderButtonView.prototype.getLastOrder = function() {
+        var lastOrder;
+        lastOrder = {};
+        _.each(this.collection.models, function(model) {
+          return lastOrder = model.attributes;
+        });
+        this.lastOrder = lastOrder;
+        this.changeButtonStatus(lastOrder);
+        return this.trigger('saveOrder');
+      };
+
+      OrderButtonView.prototype.sendOrder = function(e) {
+        this.on('saveOrder', this.saveOrder, this);
+        this.updateOrderStatus();
+        return e.preventDefault();
+      };
+
+      OrderButtonView.prototype.saveOrder = function() {
+        if (this.lastOrder) {
+          this.orderSend = new OrderList();
+          this.orderSend.url = '/orders/' + this.lastOrder.id;
+          this.orderSend.fetch();
+          return this.orderSend.on('reset', this.updateOrderStatus, this);
+        }
+      };
+
+      OrderButtonView.prototype.buildOrder = function() {
+        var ordersByUser, text;
+        ordersByUser = {};
+        text = '';
+        _.each(this.usersOrder.models, function(userOrder) {
+          if (!ordersByUser[userOrder.attributes.user._id]) {
+            ordersByUser[userOrder.attributes.user._id] = [];
+          }
+          return ordersByUser[userOrder.attributes.user._id].push(userOrder);
+        });
+        _.each(ordersByUser, function(userOrder) {
+          return _.each(userOrder, function(item) {
+            return text += item.attributes.dish.name + ' ';
+          });
+        });
+        return console.log(text);
+      };
+
+      OrderButtonView.prototype.updateOrderStatus = function() {
+        this.collection = new OrderList();
+        this.collection.getTodayOrder();
+        return this.collection.on('reset', this.getLastOrder, this);
+      };
+
+      OrderButtonView.prototype.render = function() {};
+
+      OrderButtonView.prototype.changeButtonStatus = function(order) {
+        if (order.sentAt === void 0) {
+          return $(this.buttonSelector).removeClass('btn-important').addClass('btn-success').text('Отправить заказ');
+        } else {
+          return $(this.buttonSelector).removeClass('btn-success').addClass('btn-important').text('Заказ отправлен');
+        }
+      };
+
+      return OrderButtonView;
 
     })(Backbone.View);
     routes = new Route();

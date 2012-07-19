@@ -43,6 +43,10 @@ $ ->
 		el: "#app-menu"
 		tagName: 'li'
 
+		initialize: ->
+			ViewsLiteral.orderButtonView = new OrderButtonView()
+			ViewsLiteral.orderButtonView.updateOrderStatus()
+
 		events: ->
 			"click li": "activateMenuItem"
 
@@ -508,8 +512,6 @@ $ ->
 
 		initialize: ->
 
-
-
 		events: ->
 			'click .save': 'save'
 			'keyup input[name="price"]': 'calculateTotal'
@@ -698,7 +700,6 @@ $ ->
 					userOrder[userOrderModel.attributes.dish] = [] if !userOrder[userOrderModel.attributes.dish]
 					userOrder[userOrderModel.attributes.dish] = userOrderModel.attributes
 
-
 			$(@el).html _.template $('#order-template').html(), {model: @model, dishesByCategory: dishesByCategory, currentDay: @attributes.currentDay, dishCategories: @dishCategories, users: @users, userOrder: userOrder}
 			if @attributes.userId
 				$('#main .order .user').val(@attributes.userId)
@@ -781,6 +782,65 @@ $ ->
 		render: ->
 			$(@$el).html _.template $('#supplier-template').html(), @model.attributes
 			@
+
+
+	class OrderButtonView extends Backbone.View
+		buttonSelector: 'header .order-button a'
+		el: '.order-button'
+
+		initialize: ->
+
+		events: ->
+			'click a': 'sendOrder'
+
+		getLastOrder: ->
+			lastOrder = {}
+			_.each @collection.models, (model) ->
+				lastOrder = model.attributes
+			@lastOrder = lastOrder
+			@changeButtonStatus(lastOrder)
+			@.trigger 'saveOrder'
+
+		sendOrder: (e) ->
+			@.on 'saveOrder', @saveOrder, @
+			@updateOrderStatus()
+			e.preventDefault()
+
+		saveOrder: ->
+			if @lastOrder
+				@orderSend = new OrderList()
+				@orderSend.url = '/orders/' + @lastOrder.id
+				@orderSend.fetch()
+				@orderSend.on 'reset', @updateOrderStatus, @
+
+
+		buildOrder: ->
+			ordersByUser = {}
+			text = ''
+			_.each @usersOrder.models, (userOrder) ->
+				ordersByUser[userOrder.attributes.user._id] = [] if !ordersByUser[userOrder.attributes.user._id]
+				ordersByUser[userOrder.attributes.user._id].push(userOrder)
+			_.each ordersByUser, (userOrder) ->
+				_.each userOrder, (item) ->
+					text += item.attributes.dish.name + ' '
+
+
+			console.log text
+
+		updateOrderStatus: ->
+			@collection = new OrderList()
+			@collection.getTodayOrder()
+			@collection.on 'reset', @getLastOrder, @
+
+		render: ->
+			#$()
+
+		changeButtonStatus: (order) ->
+			if order.sentAt == undefined
+				$(@buttonSelector).removeClass('btn-important').addClass('btn-success').text('Отправить заказ')
+			else
+				$(@buttonSelector).removeClass('btn-success').addClass('btn-important').text('Заказ отправлен')
+
 
 	routes = new Route()
 	Backbone.history.start()

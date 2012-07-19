@@ -8,6 +8,7 @@ OrderSchema = new Schema
 	supplier:
 		type: Schema.ObjectId
 		ref: 'Supplier'
+		required: true
 	price:
 		type: Number
 	sentAt:

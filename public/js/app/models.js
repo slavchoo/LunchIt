@@ -168,6 +168,13 @@
 
     OrderList.prototype.url = '/orders';
 
+    OrderList.prototype.getTodayOrder = function() {
+      var fromDay;
+      fromDay = moment().format('YYYY-MM-DD');
+      this.url = '/orders/' + fromDay + '/' + moment().add('days', 1).format('YYYY-MM-DD');
+      return this.fetch();
+    };
+
     return OrderList;
 
   })(Backbone.Collection);

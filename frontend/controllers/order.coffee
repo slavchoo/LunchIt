@@ -41,9 +41,34 @@ class OrderController
 				console.log err
 
 	send: (req, res)->
+		Order.findById(req.params.id).populate('supplier').exec (err, order) ->
+			todayOrder = order
+
+			mailerConfig =
+				host : "smtp.gmail.com",
+				port : "465",
+				ssl: true,
+				domain: 'smtp.gmail.com',
+				to : todayOrder.supplier.address,
+				from : "weavoradev@gmail.com",
+				subject : todayOrder.supplier.subject,
+				body: req.body.text,
+				authentication : "login",
+				username : "weavoradev",
+				password : "0ynWRVe6Vx"
+
+			mailer.send mailerConfig, (err, result) ->
+				if !err
+					todayOrder.sentAt = moment().unix()
+					todayOrder.save()
+					res.send todayOrder._id
+
+
+	previewEmail: (req, res)->
 		UserOrder.find({'order': req.params.id}).populate('dish').populate('user').exec (err, userOrders) ->
 			if !err
 				todayOrder = {}
+
 				Order.findById(req.params.id).populate('supplier').exec (err, order) ->
 					todayOrder = order
 
@@ -53,34 +78,19 @@ class OrderController
 						ordersByUser[userOrder.user._id].push(userOrder)
 
 					orderText = ''
+
+					number = 0
 					_.each ordersByUser, (userOrder) ->
+						orderArray = []
+						number += 1
 						_.each userOrder, (order) ->
-							orderText += '"' + order.dish.name + '" ' + order.quantity + ' шт.\n'
+							orderArray.push(order.dish.name + (if order.quantity > 1  then ' (' + order.quantity + ' порции)' else ''))
+						orderText += number + '. ' + orderArray.join(' + ') + '\n'
 
 					if todayOrder.supplier.template
-						todayOrder.sentAt = moment().unix()
-						todayOrder.save()
 						orderText = _.template todayOrder.supplier.template, {orders: orderText, date: moment().format('DD-MM-YYYY')}
 
-						mailerConfig =
-							host : "smtp.gmail.com",
-							port : "465",
-							ssl: true,
-							domain: 'smtp.gmail.com',
-							to : todayOrder.supplier.address,
-							from : "weavoradev@gmail.com",
-							subject : todayOrder.supplier.subject,
-							body: orderText,
-							authentication : "login",
-							username : "weavoradev",
-							password : "0ynWRVe6Vx"
+					res.send orderText
 
-						mailer.send mailerConfig, (err, result) ->
-							console.log 'ok'
-
-
-
-
-					res.send order
 
 module.exports = new OrderController()

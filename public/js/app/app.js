@@ -12,7 +12,7 @@
   ViewsLiteral = {};
 
   $(function() {
-    var AccessorisMenuView, AppMenuView, DayOrderView, DishesMenuView, EditSupplierView, FullOrderView, IndexView, MenuDishFormView, MenuView, OrderButtonView, OrderView, PreferencesParamsView, PreferencesSendView, PreferencesTeamView, PreferencesUserView, PreferencesView, PreferencesViews, Route, SupplierView, SuppliersSelectorView, SuppliersView, Views, WeekDayOrderView, WeekOrderView, WeekSwitcherView, routes;
+    var AccessorisMenuView, AppMenuView, DayOrderView, DishesMenuView, EditSupplierView, FullOrderView, IndexView, MenuDishFormView, MenuView, OrderButtonView, OrderView, PreferencesParamsView, PreferencesSendView, PreferencesTeamView, PreferencesUserView, PreferencesView, PreferencesViews, PreviewEmailView, Route, SupplierView, SuppliersSelectorView, SuppliersView, Views, WeekDayOrderView, WeekOrderView, WeekSwitcherView, routes;
     Route = (function(_super) {
 
       __extends(Route, _super);
@@ -1077,7 +1077,6 @@
         orderedDishes = [];
         orderBlock = $('#main .order');
         userId = orderBlock.find('.user').val();
-        console.log(this.model);
         _.each(orderBlock.find('.dish-order'), function(item) {
           if ($(item).val()) {
             return orderedDishes.push({
@@ -1299,7 +1298,7 @@
 
       OrderButtonView.prototype.events = function() {
         return {
-          'click a': 'sendOrder'
+          'click a': 'showPreview'
         };
       };
 
@@ -1314,18 +1313,34 @@
         return this.trigger('saveOrder');
       };
 
-      OrderButtonView.prototype.sendOrder = function(e) {
-        this.on('saveOrder', this.saveOrder, this);
-        this.updateOrderStatus();
-        return e.preventDefault();
+      OrderButtonView.prototype.showPreview = function(e) {
+        e.preventDefault();
+        this.on('saveOrder', this.loadPopup, this);
+        return this.updateOrderStatus();
+      };
+
+      OrderButtonView.prototype.loadPopup = function() {
+        ViewsLiteral.previewEmail = new PreviewEmailView({
+          model: this.lastOrder
+        });
+        return ViewsLiteral.previewEmail.on('sent', this.saveOrder, this);
       };
 
       OrderButtonView.prototype.saveOrder = function() {
+        var _this = this;
         if (this.lastOrder) {
-          this.orderSend = new OrderList();
-          this.orderSend.url = '/orders/' + this.lastOrder.id;
-          this.orderSend.fetch();
-          this.orderSend.on('reset', this.updateOrderStatus, this);
+          $.ajax({
+            url: '/send_order/' + this.lastOrder.id,
+            data: {
+              text: ViewsLiteral.previewEmail.emailText
+            },
+            type: 'POST',
+            dataType: 'text',
+            success: function(response) {
+              console.log('update status');
+              return _this.updateOrderStatus();
+            }
+          });
         }
         return this.off('saveOrder');
       };
@@ -1347,6 +1362,64 @@
       };
 
       return OrderButtonView;
+
+    })(Backbone.View);
+    PreviewEmailView = (function(_super) {
+
+      __extends(PreviewEmailView, _super);
+
+      function PreviewEmailView() {
+        return PreviewEmailView.__super__.constructor.apply(this, arguments);
+      }
+
+      PreviewEmailView.prototype.el = '#preview-email';
+
+      PreviewEmailView.prototype.initialize = function() {
+        var _this = this;
+        this.on('loadPopup', this.render, this);
+        return $.ajax({
+          url: '/order_preview/' + this.model.id,
+          type: 'GET',
+          dataType: 'text',
+          success: function(response) {
+            _this.emailText = response;
+            return _this.trigger('loadPopup');
+          }
+        });
+      };
+
+      PreviewEmailView.prototype.events = function() {
+        return {
+          'click a.save': 'save'
+        };
+      };
+
+      PreviewEmailView.prototype.save = function(e) {
+        e.preventDefault();
+        this.emailText = $(this.el).find('textarea').val();
+        this.trigger('sent');
+        return $('#preview-order-form').modal('hide');
+      };
+
+      PreviewEmailView.prototype.render = function() {
+        var _this = this;
+        $(this.el).html(_.template($('#preview-email-template').html(), {
+          date: moment().format('DD MMMM'),
+          text: this.emailText
+        }));
+        $('#preview-order-form').modal({
+          backdrop: false
+        });
+        return $('#preview-order-form').on('hidden', function() {
+          return _this.hide();
+        });
+      };
+
+      PreviewEmailView.prototype.hide = function() {
+        return $(this.el).empty();
+      };
+
+      return PreviewEmailView;
 
     })(Backbone.View);
     routes = new Route();

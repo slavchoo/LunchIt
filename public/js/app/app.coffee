@@ -793,7 +793,7 @@ $ ->
 		initialize: ->
 
 		events: ->
-			'click a': 'sendOrder'
+			'click a': 'showPreview'
 
 		getLastOrder: ->
 			lastOrder = {}
@@ -803,17 +803,27 @@ $ ->
 			@changeButtonStatus(lastOrder)
 			@.trigger 'saveOrder'
 
-		sendOrder: (e) ->
-			@.on 'saveOrder', @saveOrder, @
-			@updateOrderStatus()
+		showPreview: (e) ->
 			e.preventDefault()
+			@.on 'saveOrder', @loadPopup, @
+			@updateOrderStatus()
+
+
+		loadPopup: ->
+			ViewsLiteral.previewEmail = new PreviewEmailView({model: @lastOrder})
+			ViewsLiteral.previewEmail.on 'sent', @saveOrder, @
 
 		saveOrder: ->
 			if @lastOrder
-				@orderSend = new OrderList()
-				@orderSend.url = '/orders/' + @lastOrder.id
-				@orderSend.fetch()
-				@orderSend.on 'reset', @updateOrderStatus, @
+				$.ajax
+					url: '/send_order/' + @lastOrder.id
+					data:
+						text: ViewsLiteral.previewEmail.emailText
+					type: 'POST'
+					dataType: 'text'
+					success: (response) =>
+						console.log 'update status'
+						@updateOrderStatus()
 			@.off 'saveOrder'
 
 		updateOrderStatus: ->
@@ -830,6 +840,38 @@ $ ->
 			else
 				$(@buttonSelector).removeClass('btn-success').addClass('btn-warning').text('Заказ отправлен')
 
+
+	class PreviewEmailView extends Backbone.View
+		el: '#preview-email'
+
+		initialize: ->
+			@.on 'loadPopup', @render, @
+			$.ajax
+				url: '/order_preview/' + @model.id
+				type: 'GET'
+				dataType: 'text'
+				success: (response) =>
+					@emailText = response
+					@.trigger 'loadPopup'
+
+
+		events: ->
+			'click a.save': 'save'
+
+		save: (e)->
+			e.preventDefault()
+			@emailText = $(@el).find('textarea').val()
+			@.trigger 'sent'
+			$('#preview-order-form').modal('hide')
+
+		render: ->
+			$(@el).html _.template $('#preview-email-template').html(), {date: moment().format('DD MMMM'), text: @emailText}
+			$('#preview-order-form').modal({backdrop: false})
+			$('#preview-order-form').on 'hidden', () =>
+				@hide()
+
+		hide: ->
+			$(@el).empty()
 
 	routes = new Route()
 	Backbone.history.start()

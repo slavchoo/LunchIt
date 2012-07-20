@@ -95,6 +95,11 @@ exports.apply = (app) ->
 		$.controller('userOrder').userOrder
 	]
 
+	app.delete '/user_orders/:userId/:orderId', [
+		$.beforeAction
+		$.controller('userOrder').deleteAll
+	]
+
 	app.put '/user_orders/:id', [
 		$.beforeAction
 		$.controller('userOrder').update

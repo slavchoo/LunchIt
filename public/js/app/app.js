@@ -1022,6 +1022,8 @@
 
       OrderView.prototype.el = '#main';
 
+      OrderView.prototype.datepicker = '.datepicker-focus';
+
       OrderView.prototype.dishCategories = {
         1: 'Супы',
         2: 'Мясо',
@@ -1052,6 +1054,10 @@
         return {
           'click .category-dish-name': 'slideToggleMenu',
           'click .save': 'saveOrder',
+          'click .copy': 'copyOrder',
+          'click .cancel': 'cancelOrder',
+          'click .delete': 'deleteOrder',
+          'click .calendar': 'orderCalendar',
           'click .preview': 'previewOrder',
           'change select.user': 'changeUser'
         };
@@ -1067,6 +1073,33 @@
       OrderView.prototype.slideToggleMenu = function(e) {
         e.preventDefault();
         return $(e.target).next().slideToggle();
+      };
+
+      OrderView.prototype.cancelOrder = function(e) {
+        e.preventDefault();
+        return this.close();
+      };
+
+      OrderView.prototype.copyOrder = function(e) {
+        return e.preventDefault();
+      };
+
+      OrderView.prototype.orderCalendar = function(e) {
+        e.preventDefault();
+        return $(this.datepicker).focus();
+      };
+
+      OrderView.prototype.deleteOrder = function(e) {
+        var _this = this;
+        e.preventDefault();
+        return $.ajax({
+          url: '/user_orders/' + this.attributes.userId + '/' + this.model.attributes.id,
+          type: 'DELETE',
+          dataType: 'json',
+          success: function() {
+            return _this.close();
+          }
+        });
       };
 
       OrderView.prototype.saveOrder = function(e) {
@@ -1129,6 +1162,13 @@
         if (this.attributes.userId) {
           $('#main .order .user').val(this.attributes.userId);
         }
+        $(this.datepicker).val(moment().add('days', 1).format('MM/DD/YYYY'));
+        $(this.datepicker).datepicker();
+        $(this.datepicker).datepicker({
+          onSelect: function(dateText, inst) {
+            return console.log(dateText);
+          }
+        });
         return this;
       };
 

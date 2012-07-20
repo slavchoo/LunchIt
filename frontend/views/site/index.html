@@ -349,8 +349,20 @@
 				</table>
 			<@ }) @>
 			<div class="control-buttons">
+				<a href="#" class="delete btn btn-danger">Удалить</a>
+				<a href="#" class="cancel btn">Отменить</a>
+
+				<div class="btn-group">
+					<input type="hidden" class="datepicker-focus"/>
+					<a href="#" class="copy btn btn-info">Копировать</a>
+					<a href="#" class="calendar btn btn-info">
+						<span class="caret"></span>
+					</a>
+				</div>
+
 				<a href="#" class="save btn btn-success">Сохранить</a>
-				<a href="#" class="preview btn btn-success" disabled>Предварительный просмотр</a>
+
+
 			</div>
 		<@ } else { @>
 			<h2>Меню пустое</h2>

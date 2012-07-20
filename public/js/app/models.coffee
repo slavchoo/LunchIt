@@ -68,6 +68,7 @@ class UserOrderList extends Backbone.Collection
 
 
 
+
 window.UserList = UserList
 window.SupplierList = SupplierList
 window.DishList = DishList

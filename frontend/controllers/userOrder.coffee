@@ -110,4 +110,11 @@ class UserOrderController
 			else
 				concole.log err
 
+	deleteAll: (req, res) ->
+		UserOrder.find({'order': req.params.orderId, 'user': req.params.userId}).exec (err, models) ->
+			_.each models, (model) ->
+				model.remove()
+			res.send {success: true}
+
+
 module.exports = new UserOrderController()

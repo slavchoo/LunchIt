@@ -621,6 +621,8 @@ $ ->
 
 	class OrderView extends Backbone.View
 		el: '#main'
+		datepicker: '.datepicker-focus'
+
 		dishCategories:
 			1: 'Супы'
 			2: 'Мясо'
@@ -650,7 +652,13 @@ $ ->
 
 		events: ->
 			'click .category-dish-name': 'slideToggleMenu'
+
 			'click .save': 'saveOrder'
+			'click .copy': 'copyOrder'
+			'click .cancel': 'cancelOrder'
+			'click .delete': 'deleteOrder'
+			'click .calendar': 'orderCalendar'
+
 			'click .preview': 'previewOrder',
 			'change select.user': 'changeUser'
 
@@ -659,10 +667,31 @@ $ ->
 			@attributes.userId = userId
 			@trigger 'updateMenu'
 
-
 		slideToggleMenu: (e)->
 			e.preventDefault()
 			$(e.target).next().slideToggle()
+
+		cancelOrder: (e) ->
+			e.preventDefault()
+			@close()
+
+		copyOrder: (e)->
+			e.preventDefault()
+
+		orderCalendar: (e) ->
+			e.preventDefault()
+			$(@datepicker).focus()
+
+
+		deleteOrder: (e) ->
+			e.preventDefault()
+
+			$.ajax
+				url: '/user_orders/' + @attributes.userId + '/' + @model.attributes.id
+				type: 'DELETE',
+				dataType: 'json'
+				success: =>
+					@close()
 
 		saveOrder: (e)->
 			e.preventDefault()
@@ -704,10 +733,19 @@ $ ->
 			$(@el).html _.template $('#order-template').html(), {model: @model, dishesByCategory: dishesByCategory, currentDay: @attributes.currentDay, dishCategories: @dishCategories, users: @users, userOrder: userOrder}
 			if @attributes.userId
 				$('#main .order .user').val(@attributes.userId)
+
+			$(@datepicker).val(moment().add('days', 1).format('MM/DD/YYYY'))
+			$(@datepicker).datepicker();
+			$(@datepicker).datepicker
+				onSelect: (dateText, inst) ->
+					console.log(dateText)
+
+
 			@
 
 		close: ->
 			@.undelegateEvents()
+
 			new WeekOrderView()
 
 	class SuppliersView extends Backbone.View

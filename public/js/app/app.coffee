@@ -671,7 +671,7 @@ $ ->
 			orderBlock = $('#main .order')
 			userId = orderBlock.find('.user').val()
 			_.each orderBlock.find('.dish-order'), (item) =>
-				if $(item).val() > 0
+				if $(item).val()
 					orderedDishes.push({
 						dish: $(item).attr('dishId')
 						quantity: $(item).val()
@@ -681,8 +681,9 @@ $ ->
 						date: moment(@attributes.currentDay).unix()
 					})
 
-			@userOrder.url = '/user_orders/'
-			@userOrder.create(orderedDishes)
+			if orderedDishes.length
+				@userOrder.url = '/user_orders/'
+				@userOrder.create(orderedDishes)
 			@close()
 
 		previewOrder: (e)->
@@ -706,6 +707,7 @@ $ ->
 			@
 
 		close: ->
+			@.undelegateEvents()
 			new WeekOrderView()
 
 	class SuppliersView extends Backbone.View
@@ -812,20 +814,7 @@ $ ->
 				@orderSend.url = '/orders/' + @lastOrder.id
 				@orderSend.fetch()
 				@orderSend.on 'reset', @updateOrderStatus, @
-
-
-		buildOrder: ->
-			ordersByUser = {}
-			text = ''
-			_.each @usersOrder.models, (userOrder) ->
-				ordersByUser[userOrder.attributes.user._id] = [] if !ordersByUser[userOrder.attributes.user._id]
-				ordersByUser[userOrder.attributes.user._id].push(userOrder)
-			_.each ordersByUser, (userOrder) ->
-				_.each userOrder, (item) ->
-					text += item.attributes.dish.name + ' '
-
-
-			console.log text
+			@.off 'saveOrder'
 
 		updateOrderStatus: ->
 			@collection = new OrderList()
@@ -837,9 +826,9 @@ $ ->
 
 		changeButtonStatus: (order) ->
 			if order.sentAt == undefined
-				$(@buttonSelector).removeClass('btn-important').addClass('btn-success').text('Отправить заказ')
+				$(@buttonSelector).removeClass('btn-warning').addClass('btn-success').text('Отправить заказ')
 			else
-				$(@buttonSelector).removeClass('btn-success').addClass('btn-important').text('Заказ отправлен')
+				$(@buttonSelector).removeClass('btn-success').addClass('btn-warning').text('Заказ отправлен')
 
 
 	routes = new Route()

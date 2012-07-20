@@ -1077,8 +1077,9 @@
         orderedDishes = [];
         orderBlock = $('#main .order');
         userId = orderBlock.find('.user').val();
+        console.log(this.model);
         _.each(orderBlock.find('.dish-order'), function(item) {
-          if ($(item).val() > 0) {
+          if ($(item).val()) {
             return orderedDishes.push({
               dish: $(item).attr('dishId'),
               quantity: $(item).val(),
@@ -1089,8 +1090,10 @@
             });
           }
         });
-        this.userOrder.url = '/user_orders/';
-        this.userOrder.create(orderedDishes);
+        if (orderedDishes.length) {
+          this.userOrder.url = '/user_orders/';
+          this.userOrder.create(orderedDishes);
+        }
         return this.close();
       };
 
@@ -1131,6 +1134,7 @@
       };
 
       OrderView.prototype.close = function() {
+        this.undelegateEvents();
         return new WeekOrderView();
       };
 
@@ -1321,26 +1325,9 @@
           this.orderSend = new OrderList();
           this.orderSend.url = '/orders/' + this.lastOrder.id;
           this.orderSend.fetch();
-          return this.orderSend.on('reset', this.updateOrderStatus, this);
+          this.orderSend.on('reset', this.updateOrderStatus, this);
         }
-      };
-
-      OrderButtonView.prototype.buildOrder = function() {
-        var ordersByUser, text;
-        ordersByUser = {};
-        text = '';
-        _.each(this.usersOrder.models, function(userOrder) {
-          if (!ordersByUser[userOrder.attributes.user._id]) {
-            ordersByUser[userOrder.attributes.user._id] = [];
-          }
-          return ordersByUser[userOrder.attributes.user._id].push(userOrder);
-        });
-        _.each(ordersByUser, function(userOrder) {
-          return _.each(userOrder, function(item) {
-            return text += item.attributes.dish.name + ' ';
-          });
-        });
-        return console.log(text);
+        return this.off('saveOrder');
       };
 
       OrderButtonView.prototype.updateOrderStatus = function() {
@@ -1353,9 +1340,9 @@
 
       OrderButtonView.prototype.changeButtonStatus = function(order) {
         if (order.sentAt === void 0) {
-          return $(this.buttonSelector).removeClass('btn-important').addClass('btn-success').text('Отправить заказ');
+          return $(this.buttonSelector).removeClass('btn-warning').addClass('btn-success').text('Отправить заказ');
         } else {
-          return $(this.buttonSelector).removeClass('btn-success').addClass('btn-important').text('Заказ отправлен');
+          return $(this.buttonSelector).removeClass('btn-success').addClass('btn-warning').text('Заказ отправлен');
         }
       };
 

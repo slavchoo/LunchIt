@@ -58,8 +58,9 @@ class OrderController
 							orderText += '"' + order.dish.name + '" ' + order.quantity + ' шт.\n'
 
 					if todayOrder.supplier.template
-						orderText = _.template todayOrder.supplier.template, {orders: orderText}
-
+						todayOrder.sentAt = moment().unix()
+						todayOrder.save()
+						orderText = _.template todayOrder.supplier.template, {orders: orderText, date: moment().format('DD-MM-YYYY')}
 
 						mailerConfig =
 							host : "smtp.gmail.com",

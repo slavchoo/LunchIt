@@ -28,7 +28,7 @@
         "!/suppliers": "suppliers",
         "!/preferences": "preferences",
         "!/week-order": "weekOrder",
-        "!/order": 'order'
+        "!/user-order": 'userOrder'
       };
 
       Route.prototype.initialize = function() {
@@ -36,7 +36,10 @@
       };
 
       Route.prototype.index = function() {
-        return new IndexView();
+        return routes.navigate('!/week-order', {
+          trigger: true,
+          replace: true
+        });
       };
 
       Route.prototype.menu = function() {
@@ -45,6 +48,13 @@
 
       Route.prototype.suppliers = function() {
         return ViewsLiteral.suppliersPageView = new SuppliersView();
+      };
+
+      Route.prototype.userOrder = function() {
+        return routes.navigate('!/week-order', {
+          trigger: true,
+          replace: true
+        });
       };
 
       Route.prototype.preferences = function() {
@@ -101,9 +111,7 @@
 
       IndexView.prototype.el = "#home-page";
 
-      IndexView.prototype.initialize = function() {
-        return console.log("index");
-      };
+      IndexView.prototype.initialize = function() {};
 
       IndexView.prototype.render = function() {};
 
@@ -904,7 +912,7 @@
         this.collection.url = '/orders/' + this.model.id;
         this.collection.create(formData);
         this.collection.trigger('update');
-        return this.hide();
+        return $('#full-order-form').modal('hide');
       };
 
       FullOrderView.prototype.hide = function() {
@@ -1037,19 +1045,23 @@
       };
 
       OrderView.prototype.initialize = function() {
+        var _this = this;
         this.users = new UserList();
         this.users.fetch();
-        this.userOrder = new UserOrderList();
-        if (this.attributes.userId && this.model) {
-          this.userOrder.url = '/user_orders/' + this.attributes.userId + '/' + this.model.attributes.id;
-          this.userOrder.fetch();
-        }
-        this.dishes = new DishList();
-        this.dishes.fetch();
-        this.render();
-        this.dishes.on('reset', this.render, this);
-        this.userOrder.on('reset', this.render, this);
-        return this.on('updateMenu', this.initialize, this);
+        this.users.on('reset', function(usersList) {
+          _this.userOrder = new UserOrderList();
+          if (_this.attributes.userId && _this.model) {
+            _this.userOrder.url = '/user_orders/' + _this.attributes.userId + '/' + _this.model.attributes.id;
+            _this.userOrder.fetch();
+          }
+          _this.dishes = new DishList();
+          _this.dishes.fetch();
+          _this.render();
+          _this.dishes.on('reset', _this.render, _this);
+          _this.userOrder.on('reset', _this.render, _this);
+          return _this.on('updateMenu', _this.initialize, _this);
+        });
+        return routes.navigate("!/user-order");
       };
 
       OrderView.prototype.events = function() {
@@ -1174,6 +1186,9 @@
           _.each(this.attributes.copyData, function(item, dishId) {
             return copyUserOrder[dishId] = _this.attributes.copyData[dishId];
           });
+        }
+        if (!this.users.models.length) {
+          alert('ddd');
         }
         $(this.el).html(_.template($('#order-template').html(), {
           model: this.model,
@@ -1404,10 +1419,12 @@
       };
 
       OrderButtonView.prototype.loadPopup = function() {
+        console.log('load popup');
         ViewsLiteral.previewEmail = new PreviewEmailView({
           model: this.lastOrder
         });
-        return ViewsLiteral.previewEmail.on('sent', this.saveOrder, this);
+        ViewsLiteral.previewEmail.on('sent', this.saveOrder, this);
+        return this.off('saveOrder');
       };
 
       OrderButtonView.prototype.saveOrder = function() {
@@ -1501,7 +1518,9 @@
       };
 
       PreviewEmailView.prototype.hide = function() {
-        return $(this.el).empty();
+        ViewsLiteral.previewEmail.off('sent');
+        $(this.el).empty();
+        return this.undelegateEvents();
       };
 
       return PreviewEmailView;

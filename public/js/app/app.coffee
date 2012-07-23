@@ -15,19 +15,22 @@ $ ->
 			"!/suppliers": "suppliers"
 			"!/preferences": "preferences",
 			"!/week-order": "weekOrder",
-			"!/order": 'order'
+			"!/user-order": 'userOrder'
 
 		initialize: ->
 			new AppMenuView()
 
 		index: ->
-			new IndexView()
+			routes.navigate('!/week-order', {trigger: true, replace: true})
 
 		menu: ->
 			new MenuView()
 
 		suppliers: ->
 			ViewsLiteral.suppliersPageView = new SuppliersView()
+
+		userOrder: ->
+			routes.navigate('!/week-order', {trigger: true, replace: true})
 
 		preferences: ->
 			new PreferencesView()
@@ -59,7 +62,6 @@ $ ->
 		el: "#home-page"
 
 		initialize: ->
-			console.log "index"
 
 		render: ->
 			#$(@el).append(_.template $('#NewsContainer').html()) if !$(@el).find('#NewsContainer').length
@@ -546,7 +548,7 @@ $ ->
 			@collection.url = '/orders/' + @model.id
 			@collection.create(formData)
 			@collection.trigger 'update'
-			@hide()
+			$('#full-order-form').modal('hide')
 
 		hide: ->
 			delete ViewsLiteral.fullOrderPopup
@@ -638,18 +640,21 @@ $ ->
 			@users = new UserList()
 			@users.fetch()
 
-			@userOrder = new UserOrderList()
-			if @attributes.userId && @model
-				@userOrder.url = '/user_orders/' + @attributes.userId + '/' + @model.attributes.id
-				@userOrder.fetch()
+			@users.on 'reset', (usersList) =>
+				@userOrder = new UserOrderList()
+				if @attributes.userId && @model
+					@userOrder.url = '/user_orders/' + @attributes.userId + '/' + @model.attributes.id
+					@userOrder.fetch()
 
-			@dishes = new DishList()
-			@dishes.fetch()
+				@dishes = new DishList()
+				@dishes.fetch()
 
-			@render()
-			@dishes.on 'reset', @render, @
-			@userOrder.on 'reset', @render, @
-			@.on 'updateMenu', @initialize, @
+				@render()
+				@dishes.on 'reset', @render, @
+				@userOrder.on 'reset', @render, @
+				@.on 'updateMenu', @initialize, @
+
+			routes.navigate("!/user-order");
 
 		events: ->
 			'click .category-dish-name': 'slideToggleMenu'
@@ -742,7 +747,8 @@ $ ->
 				copyUserOrder = {}
 				_.each @attributes.copyData, (item, dishId) =>
 					copyUserOrder[dishId] = @attributes.copyData[dishId]
-
+			if !@users.models.length
+				alert 'ddd'
 			$(@el).html _.template $('#order-template').html(), {model: @model, copyUserOrder: copyUserOrder, dishesByCategory: dishesByCategory, currentDay: @attributes.currentDay, dishCategories: @dishCategories, users: @users, userOrder: userOrder}
 			if @attributes.userId
 				$('#main .order .user').val(@attributes.userId)
@@ -872,10 +878,11 @@ $ ->
 			@.on 'saveOrder', @loadPopup, @
 			@updateOrderStatus()
 
-
 		loadPopup: ->
+			console.log 'load popup'
 			ViewsLiteral.previewEmail = new PreviewEmailView({model: @lastOrder})
 			ViewsLiteral.previewEmail.on 'sent', @saveOrder, @
+			@.off 'saveOrder'
 
 		saveOrder: ->
 			if @lastOrder
@@ -936,7 +943,9 @@ $ ->
 				@hide()
 
 		hide: ->
+			ViewsLiteral.previewEmail.off 'sent'
 			$(@el).empty()
+			@.undelegateEvents()
 
 	routes = new Route()
 	Backbone.history.start()

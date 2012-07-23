@@ -50,6 +50,7 @@ class OrderController
 				domain: 'smtp.gmail.com',
 				to : todayOrder.supplier.address,
 				from : "weavoradev@gmail.com",
+				cc: todayOrder.supplier.cc,
 				subject : todayOrder.supplier.subject,
 				body: req.body.text,
 				authentication : "login",

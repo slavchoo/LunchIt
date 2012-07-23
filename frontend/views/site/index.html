@@ -358,7 +358,9 @@
 			<@ }) @>
 
 			<div class="control-buttons">
-				<a href="#" class="delete btn btn-danger">Удалить</a>
+				<@ if (!model || (model && !model.attributes.sentAt)) {@>
+					<a href="#" class="delete btn btn-danger">Удалить</a>
+				<@ } @>
 				<a href="#" class="cancel btn">Отменить</a>
 
 				<div class="btn-group">

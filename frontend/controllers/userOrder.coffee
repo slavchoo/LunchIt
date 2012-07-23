@@ -14,7 +14,6 @@ class UserOrderController
 		orderId = 0
 		if orderParams && !orderParams.order
 			Supplier.findOne().exec (err, supplierModel ) ->
-				console.log orderParams
 				order = new Order({
 					supplier: supplierModel._id
 					createdAt: orderParams.date

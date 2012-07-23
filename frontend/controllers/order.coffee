@@ -15,7 +15,6 @@ class OrderController
 					console.log err
 
 	create: (req, res) ->
-		console.log req.body
 		model = new Order {
 			createdAt: req.body.createdAt
 			supplier: req.body.supplier

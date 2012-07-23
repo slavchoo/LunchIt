@@ -622,6 +622,7 @@ $ ->
 	class OrderView extends Backbone.View
 		el: '#main'
 		datepicker: '.datepicker-focus'
+		copyDate: undefined
 
 		dishCategories:
 			1: 'Супы'
@@ -677,6 +678,12 @@ $ ->
 
 		copyOrder: (e)->
 			e.preventDefault()
+			copyData = {}
+			_.each $(@el).find('.order .dish-order'), (item) ->
+				copyData[$(item).attr('dishId')] = $(item).val()
+
+			@.undelegateEvents()
+			new OrderView({model: @potentialOrder, attributes:{currentDay: @copyDate.subtract('days', 1), copyData: copyData, userId: $(@el).find('select.user').val()}})
 
 		orderCalendar: (e) ->
 			e.preventDefault()
@@ -726,22 +733,41 @@ $ ->
 
 			userOrder = {}
 			if @userOrder
-				_.each @userOrder.models, (userOrderModel) ->
+				_.each @userOrder.models, (userOrderModel) =>
 					userOrder[userOrderModel.attributes.dish] = [] if !userOrder[userOrderModel.attributes.dish]
 					userOrder[userOrderModel.attributes.dish] = userOrderModel.attributes
 
-			$(@el).html _.template $('#order-template').html(), {model: @model, dishesByCategory: dishesByCategory, currentDay: @attributes.currentDay, dishCategories: @dishCategories, users: @users, userOrder: userOrder}
+			copyUserOrder = undefined
+			if @attributes.copyData
+				copyUserOrder = {}
+				_.each @attributes.copyData, (item, dishId) =>
+					copyUserOrder[dishId] = @attributes.copyData[dishId]
+
+			$(@el).html _.template $('#order-template').html(), {model: @model, copyUserOrder: copyUserOrder, dishesByCategory: dishesByCategory, currentDay: @attributes.currentDay, dishCategories: @dishCategories, users: @users, userOrder: userOrder}
 			if @attributes.userId
 				$('#main .order .user').val(@attributes.userId)
 
-			$(@datepicker).val(moment().add('days', 1).format('MM/DD/YYYY'))
-			$(@datepicker).datepicker();
-			$(@datepicker).datepicker
-				onSelect: (dateText, inst) ->
-					console.log(dateText)
+			$(@datepicker).val(moment(@attributes.currentDay).add('days', 1).format('MM/DD/YYYY'))
 
-
+			@setDatepickerEvents()
 			@
+
+		setDatepickerEvents: ->
+			@getPotentialCopyDay(moment(@attributes.currentDay).add('days', 1))
+			$('.order .control-buttons .copy').text('Копировать на завтра')
+			$(@datepicker).datepicker
+				dateFormat: "mm/dd/yy"
+				onSelect: (dateText, inst) =>
+					@getPotentialCopyDay(dateText)
+
+		getPotentialCopyDay: (dateText)->
+			@copyDate = moment(dateText)
+			$('.order .control-buttons .copy').text('Копировать на ' + @copyDate.format('DD MMMM'))
+			@potentialCopyDay = new OrderList()
+			@potentialCopyDay.url = '/orders/' + @copyDate.format('YYYY-MM-DD') + '/' + @copyDate.add('days', 1).format('YYYY-MM-DD')
+			@potentialCopyDay.fetch()
+			@potentialCopyDay.on 'reset', (order) =>
+				@potentialOrder = order.models[0]
 
 		close: ->
 			@.undelegateEvents()
@@ -901,6 +927,7 @@ $ ->
 			@emailText = $(@el).find('textarea').val()
 			@.trigger 'sent'
 			$('#preview-order-form').modal('hide')
+			$(ViewsLiteral.orderButtonView.buttonSelector).addClass('btn-success').text('Заказ отправляется...')
 
 		render: ->
 			$(@el).html _.template $('#preview-email-template').html(), {date: moment().format('DD MMMM'), text: @emailText}

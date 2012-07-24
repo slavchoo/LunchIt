@@ -73,6 +73,11 @@ exports.apply = (app) ->
 		$.controller('order').updateOrder
 	]
 
+	app.get '/day_order/:date', [
+		$.beforeAction
+		$.controller('order').day
+	]
+
 	app.post '/send_order/:id', [
 		$.beforeAction
 		$.controller('order').send
@@ -113,4 +118,14 @@ exports.apply = (app) ->
 	app.delete '/user_orders/:id', [
 		$.beforeAction
 		$.controller('userOrder').delete
+	]
+
+	app.get '/unpaid_orders', [
+		$.beforeAction
+		$.controller('userDayOrder').unpaid
+	]
+
+	app.post '/user_day_orders', [
+		$.beforeAction
+		$.controller('userDayOrder').pay
 	]

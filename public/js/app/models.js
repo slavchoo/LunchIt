@@ -1,5 +1,5 @@
 (function() {
-  var Dish, DishList, Order, OrderList, Supplier, SupplierList, User, UserList, UserOrder, UserOrderList,
+  var Dish, DishList, Order, OrderList, Supplier, SupplierList, User, UserDayOrder, UserDayOrderList, UserList, UserOrder, UserOrderList,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -100,6 +100,20 @@
 
   })(Backbone.Model);
 
+  UserDayOrder = (function(_super) {
+
+    __extends(UserDayOrder, _super);
+
+    function UserDayOrder() {
+      return UserDayOrder.__super__.constructor.apply(this, arguments);
+    }
+
+    UserDayOrder.prototype.idAttribute = "_id";
+
+    return UserDayOrder;
+
+  })(Backbone.Model);
+
   window.User = User;
 
   window.Supplier = Supplier;
@@ -107,6 +121,8 @@
   window.Dish = Dish;
 
   window.UserOrder = UserOrder;
+
+  window.UserDayOrder = UserDayOrder;
 
   UserList = (function(_super) {
 
@@ -175,6 +191,17 @@
       return this.fetch();
     };
 
+    OrderList.prototype.getOrderByDate = function(date) {
+      var dateObject;
+      if (_.isObject(date)) {
+        dateObject = date;
+      } else {
+        dateObject = moment(date);
+      }
+      this.url = '/day_order/' + dateObject.format('YYYY-MM-DD');
+      return this.fetch();
+    };
+
     return OrderList;
 
   })(Backbone.Collection);
@@ -195,6 +222,27 @@
 
   })(Backbone.Collection);
 
+  UserDayOrderList = (function(_super) {
+
+    __extends(UserDayOrderList, _super);
+
+    function UserDayOrderList() {
+      return UserDayOrderList.__super__.constructor.apply(this, arguments);
+    }
+
+    UserDayOrderList.prototype.model = UserDayOrder;
+
+    UserDayOrderList.prototype.url = '/user_day_orders';
+
+    UserDayOrderList.prototype.getUnpaid = function() {
+      this.url = '/unpaid_orders';
+      return this.fetch();
+    };
+
+    return UserDayOrderList;
+
+  })(Backbone.Collection);
+
   window.UserList = UserList;
 
   window.SupplierList = SupplierList;
@@ -204,5 +252,7 @@
   window.OrderList = OrderList;
 
   window.UserOrderList = UserOrderList;
+
+  window.UserDayOrderList = UserDayOrderList;
 
 }).call(this);

@@ -92,5 +92,14 @@ class OrderController
 
 					res.send orderText
 
+	day: (req, res) ->
+		Order.findOne()
+			.where('createdAt').gte(moment(req.params.date).unix()).lte(moment(req.params.date).add('days', 1).unix())
+			.exec (err, model) ->
+				if !err
+					res.send model
+				else
+					console.log err
+
 
 module.exports = new OrderController()

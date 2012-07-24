@@ -436,3 +436,54 @@
 		</div>
 	</div>
 </script>
+
+
+<script type="text/template" id="billing-page-template">
+	<div id="billing">
+		<div id="payer"></div>
+
+		<div id="unpaid-users"></div>
+	</div>
+</script>
+
+<script type="text/template" id="payer-template">
+	<div class="calendar">calendar</div>
+
+	<div class="payer-name">
+		<select>
+			<option value=""></option>
+			<@console.log(orders)@>
+			<@ _.each(users, function(user) {@>
+				<option value="<@=user.attributes.id@>" <@= user.attributes.id == orders.attributes.payer ? 'selected="selected"' : ''@>><@=user.attributes.name@></option>
+			<@ }) @>
+		</select>
+	</div>
+
+	<div class="">
+		<a href="#" class="btn pay">Оплатил</a>
+	</div>
+</script>
+
+<script type="text/template" id="unpaid-users-template">
+	<div class="user">
+		<@ _.each(unpaid, function(user, userId) { @>
+			<div class="name"><@= users.get(userId).attributes.name@> <div class="total"><span class="paid">0</span> / <span class="total"><@=user.total@></span></div></div>
+
+			<div class="days">
+				<@ _.each(user, function(day) {@>
+					<div class="day" orderId="<@=day.id@>">
+						<div class="date">
+							<label>
+								<input type="checkbox" total="<@= day.attributes.order.total @>"/>
+								<@= moment(parseInt(day.attributes.order.createdAt*1000)).format('dddd DD MMMM')@>
+							</label>
+						</div>
+						<div class="sum"><@= day.attributes.order.total @></div>
+					</div>
+				<@ }) @>
+			</div>
+		<@ }) @>
+	</div>
+	<hr/>
+	<button class="save btn btn-success">Сохранить</button>
+</script>

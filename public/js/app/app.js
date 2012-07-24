@@ -12,7 +12,7 @@
   ViewsLiteral = {};
 
   $(function() {
-    var AccessorisMenuView, AppMenuView, DayOrderView, DishesMenuView, EditSupplierView, FullOrderView, IndexView, MenuDishFormView, MenuView, OrderButtonView, OrderView, PreferencesParamsView, PreferencesSendView, PreferencesTeamView, PreferencesUserView, PreferencesView, PreferencesViews, PreviewEmailView, Route, SupplierView, SuppliersSelectorView, SuppliersView, Views, WeekDayOrderView, WeekOrderView, WeekSwitcherView, routes;
+    var AccessorisMenuView, AppMenuView, BillingView, DayOrderView, DishesMenuView, EditSupplierView, FullOrderView, IndexView, MenuDishFormView, MenuView, OrderButtonView, OrderView, PreferencesParamsView, PreferencesSendView, PreferencesTeamView, PreferencesUserView, PreferencesView, PreferencesViews, PreviewEmailView, Route, SupplierView, SuppliersSelectorView, SuppliersView, Views, WeekDayOrderView, WeekOrderView, WeekSwitcherView, routes;
     Route = (function(_super) {
 
       __extends(Route, _super);
@@ -28,7 +28,8 @@
         "!/suppliers": "suppliers",
         "!/preferences": "preferences",
         "!/week-order": "weekOrder",
-        "!/user-order": 'userOrder'
+        "!/user-order": 'userOrder',
+        "!/billing": 'billing'
       };
 
       Route.prototype.initialize = function() {
@@ -63,6 +64,11 @@
 
       Route.prototype.weekOrder = function() {
         return new WeekOrderView();
+      };
+
+      Route.prototype.billing = function() {
+        ViewsLiteral.BillingView = new BillingView();
+        return ViewsLiteral.BillingView.render();
       };
 
       return Route;
@@ -1187,9 +1193,6 @@
             return copyUserOrder[dishId] = _this.attributes.copyData[dishId];
           });
         }
-        if (!this.users.models.length) {
-          alert('ddd');
-        }
         $(this.el).html(_.template($('#order-template').html(), {
           model: this.model,
           copyUserOrder: copyUserOrder,
@@ -1524,6 +1527,117 @@
       };
 
       return PreviewEmailView;
+
+    })(Backbone.View);
+    /* ////////////////////////////////////////////////
+    		Billing
+    	////////////////////////////////////////////////
+    */
+
+    BillingView = (function(_super) {
+
+      __extends(BillingView, _super);
+
+      function BillingView() {
+        return BillingView.__super__.constructor.apply(this, arguments);
+      }
+
+      BillingView.prototype.el = '#main';
+
+      BillingView.prototype.initialize = function() {
+        var _this = this;
+        this.orders = new OrderList();
+        this.unpaid = new UserDayOrderList();
+        this.users = new UserList();
+        this.users.fetch();
+        return this.users.on('reset', function(users) {
+          _this.orders.getOrderByDate(moment());
+          return _this.orders.on('reset', function(result) {
+            _this.order = _this.orders.models[0];
+            _this.renderPayer();
+            return _this.updateUnpaid();
+          });
+        });
+      };
+
+      BillingView.prototype.events = function() {
+        return {
+          'click #unpaid-users button.save': 'savePayment',
+          'change #unpaid-users input[type="checkbox"]': 'recalculateTotal',
+          'click #payer .pay': 'attachUser'
+        };
+      };
+
+      BillingView.prototype.attachUser = function() {
+        var userId;
+        userId = $('#payer .payer-name select').val();
+        if (!_.isEmpty(userId)) {
+          this.order.payer = userId;
+          return this.order.save();
+        }
+      };
+
+      BillingView.prototype.recalculateTotal = function() {
+        var checkboxes, total;
+        checkboxes = $('#unpaid-users input[type="checkbox"]');
+        total = 0;
+        _.each(checkboxes, function(item) {
+          if ($(item).is(':checked')) {
+            return total += parseInt($(item).attr('total'));
+          }
+        });
+        return checkboxes.parents('.user').find('.name .total .paid').text(total);
+      };
+
+      BillingView.prototype.updateUnpaid = function() {
+        this.unpaid.getUnpaid();
+        return this.unpaid.on('reset', this.renderUsers, this);
+      };
+
+      BillingView.prototype.savePayment = function(e) {
+        var paid;
+        e.preventDefault();
+        paid = [];
+        _.each($('#unpaid-users .user input[type="checkbox"]:checked'), function(item) {
+          return paid.push($(item).parents('div.day').attr('orderId'));
+        });
+        this.unpaid.on('sync', this.updateUnpaid, this);
+        this.unpaid.url = '/user_day_orders';
+        return this.unpaid.create(paid);
+      };
+
+      BillingView.prototype.renderPayer = function() {
+        return $(this.el).find('#payer').html(_.template($('#payer-template').html(), {
+          users: this.users.models,
+          orders: this.order
+        }));
+      };
+
+      BillingView.prototype.renderUsers = function() {
+        var unpaidUsers;
+        unpaidUsers = {};
+        _.each(this.unpaid.models, function(user) {
+          if (!unpaidUsers[user.attributes.user._id]) {
+            unpaidUsers[user.attributes.user._id] = [];
+          }
+          if (!unpaidUsers[user.attributes.user._id].total) {
+            unpaidUsers[user.attributes.user._id].total = 0;
+          }
+          unpaidUsers[user.attributes.user._id].push(user);
+          return unpaidUsers[user.attributes.user._id].total += user.attributes.order.total;
+        });
+        return $(this.el).find('#unpaid-users').html(_.template($('#unpaid-users-template').html(), {
+          unpaid: unpaidUsers,
+          users: this.users
+        }));
+      };
+
+      BillingView.prototype.render = function() {
+        $(this.el).html(_.template($('#billing-page-template').html()));
+        return this;
+      };
+
+      return BillingView;
 
     })(Backbone.View);
     routes = new Route();

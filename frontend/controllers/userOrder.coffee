@@ -29,20 +29,29 @@ class UserOrderController
 					_.each models, (model) ->
 						model.remove()
 
-				_.each req.body, (item) ->
-					Dish.findById(item.dish).exec (err, doc) =>
-						model = new UserOrder {
-							dish: item.dish
-							user: item.user
-							quantity: item.quantity
-							order: orderId
-							price: doc.price
-						}
-						model.save (err) ->
-							if !err
-								console.log 'user order created'
-							else
-								console.log err
+					_.each req.body, (item) ->
+						Dish.findById(item.dish).exec (err, doc) =>
+							model = new UserOrder {
+								dish: item.dish
+								user: item.user
+								quantity: item.quantity
+								order: orderId
+								price: doc.price
+							}
+							model.save (err) ->
+								if !err
+									console.log 'user order created'
+								else
+									console.log err
+
+					UserDayOrder.findOne({'order': orderId, 'user': orderParams.user}).exec (err, model) ->
+						if !model
+							userDayOrder = new UserDayOrder({
+								order: orderId
+								user: orderParams.user
+							})
+							userDayOrder.save()
+
 
 				res.send orderId
 
@@ -70,6 +79,14 @@ class UserOrderController
 								console.log 'user order created'
 							else
 								console.log err
+
+				UserDayOrder.findOne({'order': orderId, 'user': orderParams.user}).exec (err, model) ->
+					if !model
+						userDayOrder = new UserDayOrder({
+							order: orderId
+							user: orderParams.user
+						})
+						userDayOrder.save()
 
 			res.send orderId
 
@@ -113,7 +130,12 @@ class UserOrderController
 		UserOrder.find({'order': req.params.orderId, 'user': req.params.userId}).exec (err, models) ->
 			_.each models, (model) ->
 				model.remove()
+
+			UserDayOrder.findOne({'order': req.params.orderId, 'user': req.params.userId}).exec (err, model) ->
+				model.remove()
+
 			res.send {success: true}
+
 
 
 module.exports = new UserOrderController()

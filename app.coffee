@@ -10,6 +10,7 @@ require './models/supplier'
 require './models/dish'
 require './models/order'
 require './models/user_order'
+require './models/user_day_order'
 
 app.path =  path = require 'path'
 app.jsHandler  = jsHandler = ""

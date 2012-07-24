@@ -16,6 +16,7 @@ $ ->
 			"!/preferences": "preferences",
 			"!/week-order": "weekOrder",
 			"!/user-order": 'userOrder'
+			"!/billing": 'billing'
 
 		initialize: ->
 			new AppMenuView()
@@ -37,6 +38,10 @@ $ ->
 
 		weekOrder: ->
 			new WeekOrderView()
+
+		billing: ->
+			ViewsLiteral.BillingView = new BillingView()
+			ViewsLiteral.BillingView.render()
 
 	Views = {}
 	PreferencesViews = {}
@@ -747,8 +752,7 @@ $ ->
 				copyUserOrder = {}
 				_.each @attributes.copyData, (item, dishId) =>
 					copyUserOrder[dishId] = @attributes.copyData[dishId]
-			if !@users.models.length
-				alert 'ddd'
+
 			$(@el).html _.template $('#order-template').html(), {model: @model, copyUserOrder: copyUserOrder, dishesByCategory: dishesByCategory, currentDay: @attributes.currentDay, dishCategories: @dishCategories, users: @users, userOrder: userOrder}
 			if @attributes.userId
 				$('#main .order .user').val(@attributes.userId)
@@ -946,6 +950,83 @@ $ ->
 			ViewsLiteral.previewEmail.off 'sent'
 			$(@el).empty()
 			@.undelegateEvents()
+
+
+
+	### ////////////////////////////////////////////////
+		Billing
+	//////////////////////////////////////////////// ###
+	class BillingView extends  Backbone.View
+		el: '#main'
+
+		initialize: ->
+			@orders = new OrderList()
+			@unpaid = new UserDayOrderList()
+
+			@users = new UserList()
+			@users.fetch()
+
+			@users.on 'reset', (users) =>
+				@orders.getOrderByDate(moment())
+				@orders.on 'reset', (result) =>
+					@order = @orders.models[0] #@orders.models[0] mongoose return one field, but fetch() - many
+					@renderPayer()
+					@updateUnpaid()
+
+		events: ->
+			'click #unpaid-users button.save': 'savePayment'
+			'change #unpaid-users input[type="checkbox"]': 'recalculateTotal'
+			'click #payer .pay': 'attachUser'
+
+		attachUser: ->
+			userId = $('#payer .payer-name select').val()
+			if !_.isEmpty(userId)
+				@order.payer = userId
+				@order.save()
+
+
+
+		recalculateTotal: ->
+			checkboxes = $('#unpaid-users input[type="checkbox"]')
+			total = 0
+			_.each checkboxes, (item) ->
+				if $(item).is(':checked')
+					total += parseInt($(item).attr('total'))
+			checkboxes.parents('.user').find('.name .total .paid').text(total)
+
+
+		updateUnpaid: ->
+			@unpaid.getUnpaid()
+			@unpaid.on 'reset', @renderUsers, @
+
+		savePayment: (e)->
+			e.preventDefault()
+			paid = []
+			_.each $('#unpaid-users .user input[type="checkbox"]:checked'), (item) ->
+				paid.push($(item).parents('div.day').attr('orderId'))
+			@unpaid.on 'sync', @updateUnpaid, @
+			@unpaid.url = '/user_day_orders'
+			@unpaid.create paid
+
+		renderPayer: ->
+			$(@el).find('#payer').html _.template $('#payer-template').html(), {users: @users.models, orders: @order}
+
+
+		renderUsers: ->
+			unpaidUsers = {}
+
+			_.each @unpaid.models, (user) ->
+				unpaidUsers[user.attributes.user._id] = [] if !unpaidUsers[user.attributes.user._id]
+				unpaidUsers[user.attributes.user._id].total = 0 if !unpaidUsers[user.attributes.user._id].total
+				unpaidUsers[user.attributes.user._id].push user
+				unpaidUsers[user.attributes.user._id].total += user.attributes.order.total
+
+			$(@el).find('#unpaid-users').html _.template $('#unpaid-users-template').html(), {unpaid: unpaidUsers, users: @users}
+
+		render: ->
+			$(@el).html _.template $('#billing-page-template').html()
+			@
+
 
 	routes = new Route()
 	Backbone.history.start()

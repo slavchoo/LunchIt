@@ -970,6 +970,7 @@ $ ->
 				@orders.getOrderByDate(moment())
 				@orders.on 'reset', (result) =>
 					@order = @orders.models[0] #@orders.models[0] mongoose return one field, but fetch() - many
+					console.log @order
 					@renderPayer()
 					@updateUnpaid()
 
@@ -978,13 +979,13 @@ $ ->
 			'change #unpaid-users input[type="checkbox"]': 'recalculateTotal'
 			'click #payer .pay': 'attachUser'
 
-		attachUser: ->
+		attachUser: (e)->
+			e.preventDefault()
 			userId = $('#payer .payer-name select').val()
 			if !_.isEmpty(userId)
-				@order.payer = userId
-				@order.save()
-
-
+				@orders.url = '/orders'
+				@order.save({payer: userId})
+				@updateUnpaid()
 
 		recalculateTotal: ->
 			checkboxes = $('#unpaid-users input[type="checkbox"]')

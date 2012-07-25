@@ -1554,6 +1554,7 @@
           _this.orders.getOrderByDate(moment());
           return _this.orders.on('reset', function(result) {
             _this.order = _this.orders.models[0];
+            console.log(_this.order);
             _this.renderPayer();
             return _this.updateUnpaid();
           });
@@ -1568,12 +1569,16 @@
         };
       };
 
-      BillingView.prototype.attachUser = function() {
+      BillingView.prototype.attachUser = function(e) {
         var userId;
+        e.preventDefault();
         userId = $('#payer .payer-name select').val();
         if (!_.isEmpty(userId)) {
-          this.order.payer = userId;
-          return this.order.save();
+          this.orders.url = '/orders';
+          this.order.save({
+            payer: userId
+          });
+          return this.updateUnpaid();
         }
       };
 

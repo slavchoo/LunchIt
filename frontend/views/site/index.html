@@ -452,9 +452,9 @@
 	<div class="payer-name">
 		<select>
 			<option value=""></option>
-			<@console.log(orders)@>
+
 			<@ _.each(users, function(user) {@>
-				<option value="<@=user.attributes.id@>" <@= user.attributes.id == orders.attributes.payer ? 'selected="selected"' : ''@>><@=user.attributes.name@></option>
+				<option value="<@=user.attributes.id@>" <@= orders && (user.attributes.id == orders.attributes.payer) ? 'selected="selected"' : ''@>><@=user.attributes.name@></option>
 			<@ }) @>
 		</select>
 	</div>

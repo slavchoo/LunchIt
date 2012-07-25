@@ -7,6 +7,8 @@ class UserDayOrderController
 				_.each models, (model, index) =>
 					model.order.getTotalUserOrder model.user._id, (result) =>
 						model.order.total = result
+					model.order.total = 1000
+
 
 				res.send models
 			else

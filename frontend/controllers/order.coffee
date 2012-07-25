@@ -39,6 +39,17 @@ class OrderController
 			else
 				console.log err
 
+	update: (req, res) ->
+		Order.findById(req.params.id).exec (err, model) ->
+			console.log req.body.payer
+			model.payer = req.body.payer
+			model.save (err) ->
+				if !err
+					console.log 'order updated'
+				else
+					console.log err
+			res.send model
+
 	send: (req, res)->
 		Order.findById(req.params.id).populate('supplier').exec (err, order) ->
 			todayOrder = order

@@ -130,6 +130,11 @@ exports.apply = (app) ->
 		$.controller('userDayOrder').unpaid
 	]
 
+	app.get '/unpaid_orders/:user', [
+		$.beforeAction
+		$.controller('userDayOrder').unpaid
+	]
+
 	app.post '/user_day_orders', [
 		$.beforeAction
 		$.controller('userDayOrder').pay

@@ -40,15 +40,22 @@ class OrderController
 				console.log err
 
 	update: (req, res) ->
-		Order.findById(req.params.id).exec (err, model) ->
-			console.log req.body.payer
-			model.payer = req.body.payer
-			model.save (err) ->
-				if !err
-					console.log 'order updated'
+		UserDayOrder.find({'order': req.params.id}).exec (err, models) ->
+			_.each models, (order) ->
+				if order.user.toString() == req.body.payer.toString()
+					order.is_paid = true
 				else
-					console.log err
-			res.send model
+					order.is_paid = false
+				order.save()
+
+			Order.findById(req.params.id).exec (err, model) ->
+				model.payer = req.body.payer
+				model.save (err) ->
+					if !err
+						console.log 'order updated'
+					else
+						console.log err
+				res.send model
 
 	send: (req, res)->
 		Order.findById(req.params.id).populate('supplier').exec (err, order) ->

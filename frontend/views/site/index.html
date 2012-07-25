@@ -447,7 +447,11 @@
 </script>
 
 <script type="text/template" id="payer-template">
-	<div class="calendar">calendar</div>
+	<div class="calendar">
+		<a href="#"><@=date.format('DD MMMM')@></a>
+
+	</div>
+	<input class="calendar" type="hidden" value="<@=moment().format('MM/DD/YY')@>"/>
 
 	<div class="payer-name">
 		<select>

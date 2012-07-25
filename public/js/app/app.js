@@ -1550,23 +1550,30 @@
         this.unpaid = new UserDayOrderList();
         this.users = new UserList();
         this.users.fetch();
-        return this.users.on('reset', function(users) {
-          _this.orders.getOrderByDate(moment().add('days', 1));
+        this.users.on('reset', function(users) {
+          _this.orders.getOrderByDate(moment());
           return _this.orders.on('reset', function(result) {
             _this.order = _this.orders.models[0];
-            console.log(_this.order);
             _this.renderPayer();
             return _this.updateUnpaid();
           });
         });
+        return this.currentDate = moment();
       };
 
       BillingView.prototype.events = function() {
         return {
           'click #unpaid-users button.save': 'savePayment',
           'change #unpaid-users input[type="checkbox"]': 'recalculateTotal',
-          'click #payer .pay': 'attachUser'
+          'click #payer .pay': 'attachUser',
+          'change #payer .payer-name select': 'updateUnpaid',
+          'click #payer div.calendar a': 'showCalendar'
         };
+      };
+
+      BillingView.prototype.showCalendar = function(e) {
+        e.preventDefault();
+        return $('#payer input.calendar').focus();
       };
 
       BillingView.prototype.attachUser = function(e) {
@@ -1595,7 +1602,8 @@
       };
 
       BillingView.prototype.updateUnpaid = function() {
-        this.unpaid.getUnpaid();
+        console.log(this.order);
+        this.unpaid.getUnpaid($('#payer .payer-name select').val());
         return this.unpaid.on('reset', this.renderUsers, this);
       };
 
@@ -1612,10 +1620,21 @@
       };
 
       BillingView.prototype.renderPayer = function() {
-        return $(this.el).find('#payer').html(_.template($('#payer-template').html(), {
+        var _this = this;
+        $(this.el).find('#payer').html(_.template($('#payer-template').html(), {
           users: this.users.models,
-          orders: this.order
+          orders: this.order,
+          date: this.currentDate
         }));
+        return $('#payer input[type="hidden"]').datepicker({
+          onSelect: function(date) {
+            var dateObject;
+            dateObject = moment(date);
+            _this.orders.getOrderByDate(dateObject);
+            _this.currentDate = dateObject;
+            return $('#payer .calendar a').text(dateObject.format('DD MMMM'));
+          }
+        });
       };
 
       BillingView.prototype.renderUsers = function() {

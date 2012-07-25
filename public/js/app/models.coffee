@@ -82,8 +82,11 @@ class UserDayOrderList extends Backbone.Collection
 	model: UserDayOrder
 	url: '/user_day_orders'
 
-	getUnpaid: ->
-		@.url = '/unpaid_orders'
+	getUnpaid: (user)->
+		if user
+			@.url = '/unpaid_orders/' + user
+		else
+			@.url = '/unpaid_orders'
 		@.fetch()
 
 

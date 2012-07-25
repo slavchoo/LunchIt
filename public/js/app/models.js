@@ -234,8 +234,12 @@
 
     UserDayOrderList.prototype.url = '/user_day_orders';
 
-    UserDayOrderList.prototype.getUnpaid = function() {
-      this.url = '/unpaid_orders';
+    UserDayOrderList.prototype.getUnpaid = function(user) {
+      if (user) {
+        this.url = '/unpaid_orders/' + user;
+      } else {
+        this.url = '/unpaid_orders';
+      }
       return this.fetch();
     };
 

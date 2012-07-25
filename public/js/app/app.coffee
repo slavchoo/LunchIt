@@ -781,7 +781,6 @@ $ ->
 
 		close: ->
 			@.undelegateEvents()
-
 			new WeekOrderView()
 
 	class SuppliersView extends Backbone.View
@@ -967,17 +966,24 @@ $ ->
 			@users.fetch()
 
 			@users.on 'reset', (users) =>
-				@orders.getOrderByDate(moment().add('days', 1))
+				@orders.getOrderByDate(moment())
 				@orders.on 'reset', (result) =>
 					@order = @orders.models[0] #@orders.models[0] mongoose return one field, but fetch() - many
-					console.log @order
 					@renderPayer()
 					@updateUnpaid()
+
+			@currentDate = moment()
 
 		events: ->
 			'click #unpaid-users button.save': 'savePayment'
 			'change #unpaid-users input[type="checkbox"]': 'recalculateTotal'
 			'click #payer .pay': 'attachUser'
+			'change #payer .payer-name select': 'updateUnpaid'
+			'click #payer div.calendar a': 'showCalendar'
+
+		showCalendar: (e) ->
+			e.preventDefault()
+			$('#payer input.calendar').focus()
 
 		attachUser: (e)->
 			e.preventDefault()
@@ -995,9 +1001,9 @@ $ ->
 					total += parseInt($(item).attr('total'))
 			checkboxes.parents('.user').find('.name .total .paid').text(total)
 
-
 		updateUnpaid: ->
-			@unpaid.getUnpaid()
+			console.log @order
+			@unpaid.getUnpaid($('#payer .payer-name select').val())
 			@unpaid.on 'reset', @renderUsers, @
 
 		savePayment: (e)->
@@ -1010,12 +1016,17 @@ $ ->
 			@unpaid.create paid
 
 		renderPayer: ->
-			$(@el).find('#payer').html _.template $('#payer-template').html(), {users: @users.models, orders: @order}
-
+			$(@el).find('#payer').html _.template $('#payer-template').html(), {users: @users.models, orders: @order, date: @currentDate}
+			$('#payer input[type="hidden"]').datepicker({
+				onSelect: (date)=>
+					dateObject = moment(date)
+					@orders.getOrderByDate(dateObject)
+					@currentDate = dateObject
+					$('#payer .calendar a').text(dateObject.format('DD MMMM'))
+			})
 
 		renderUsers: ->
 			unpaidUsers = {}
-
 			_.each @unpaid.models, (user) ->
 				unpaidUsers[user.attributes.user._id] = [] if !unpaidUsers[user.attributes.user._id]
 				unpaidUsers[user.attributes.user._id].total = 0 if !unpaidUsers[user.attributes.user._id].total

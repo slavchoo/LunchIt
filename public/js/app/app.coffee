@@ -967,7 +967,7 @@ $ ->
 			@users.fetch()
 
 			@users.on 'reset', (users) =>
-				@orders.getOrderByDate(moment())
+				@orders.getOrderByDate(moment().add('days', 1))
 				@orders.on 'reset', (result) =>
 					@order = @orders.models[0] #@orders.models[0] mongoose return one field, but fetch() - many
 					console.log @order

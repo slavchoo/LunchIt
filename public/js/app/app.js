@@ -1551,7 +1551,7 @@
         this.users = new UserList();
         this.users.fetch();
         return this.users.on('reset', function(users) {
-          _this.orders.getOrderByDate(moment());
+          _this.orders.getOrderByDate(moment().add('days', 1));
           return _this.orders.on('reset', function(result) {
             _this.order = _this.orders.models[0];
             console.log(_this.order);

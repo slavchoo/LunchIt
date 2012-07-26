@@ -1,8 +1,5 @@
 mongoose = require 'mongoose'
 Schema = mongoose.Schema
-Query = mongoose.Query
-ObjectId = Schema.ObjectId
-crypto = require 'crypto'
 _ = require "underscore"
 
 OrderSchema = new Schema
@@ -10,8 +7,6 @@ OrderSchema = new Schema
 		type: Schema.ObjectId
 		ref: 'Supplier'
 		required: true
-	price:
-		type: Number
 	sentAt:
 		type: String
 	createdAt:
@@ -21,9 +16,6 @@ OrderSchema = new Schema
 		ref: 'User'
 	total:
 		type: Number
-
-toLower = (v) ->
-	v.toLowerCase()
 
 
 OrderSchema.methods.getTotalUserOrder = findUserOrders = (userId, cb) ->

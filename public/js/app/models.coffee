@@ -31,10 +31,14 @@ class Order extends Backbone.Model
 
 class UserOrder extends Backbone.Model
 	parse: (response) ->
-		response.id = response._id
+		if response
+			response.id = response._id
 		response
 
 class UserDayOrder extends Backbone.Model
+	idAttribute: "_id"
+
+class DishCategory extends Backbone.Model
 	idAttribute: "_id"
 
 window.User = User
@@ -42,6 +46,7 @@ window.Supplier = Supplier
 window.Dish = Dish
 window.UserOrder = UserOrder
 window.UserDayOrder = UserDayOrder
+window.DishCategory = DishCategory
 
 
 class UserList extends Backbone.Collection
@@ -73,7 +78,6 @@ class OrderList extends Backbone.Collection
 		@.url = '/day_order/' + dateObject.format('YYYY-MM-DD')
 		@.fetch()
 
-
 class UserOrderList extends Backbone.Collection
 	model: UserOrder
 	url: '/user_orders'
@@ -89,6 +93,10 @@ class UserDayOrderList extends Backbone.Collection
 			@.url = '/unpaid_orders'
 		@.fetch()
 
+class DishCategoryList extends Backbone.Collection
+	model: DishCategory
+	url: '/dish_category'
+
 
 
 window.UserList = UserList
@@ -97,6 +105,7 @@ window.DishList = DishList
 window.OrderList = OrderList
 window.UserOrderList = UserOrderList
 window.UserDayOrderList = UserDayOrderList
+window.DishCategoryList = DishCategoryList
 
 
 

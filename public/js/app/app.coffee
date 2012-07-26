@@ -20,6 +20,8 @@ $ ->
 
 		initialize: ->
 			new AppMenuView()
+			ViewsLiteral.userSelector = new UserSelectorView()
+			ViewsLiteral.userSelector.updateList()
 
 		index: ->
 			routes.navigate('!/week-order', {trigger: true, replace: true})
@@ -71,6 +73,30 @@ $ ->
 		render: ->
 			#$(@el).append(_.template $('#NewsContainer').html()) if !$(@el).find('#NewsContainer').length
 			#$(@el).append(_.template $('#AlbumContainer').html()) if !$(@el).find('#AlbumContainer').length
+
+
+	class UserSelectorView extends Backbone.View
+		el: '#user-selector'
+
+		initialize: ->
+			@users = new UserList()
+			@users.on 'reset', @render, @
+			@userId = $.cookie('user')
+
+		events: ->
+			'change select': 'setUser'
+
+		setUser: (e)->
+			@userId = $(e.target).val()
+			$.cookie('user', @userId)
+
+		render: ->
+			$(@el).html _.template $('#user-selector-template').html(), {users: @users.models, currentUser: @userId}
+			@
+
+		updateList: ->
+			@users.fetch()
+
 
 
 	###
@@ -642,6 +668,11 @@ $ ->
 
 
 		initialize: ->
+			if _.isEmpty(ViewsLiteral.userSelector.userId)
+				alert('Для редактирования и просмотра заказа выберите пользователя вверху')
+				routes.navigate("!/week-order", {trigger: true, replace: true});
+				return
+
 			@users = new UserList()
 			@users.fetch()
 
@@ -654,7 +685,6 @@ $ ->
 				@dishes = new DishList()
 				@dishes.fetch()
 
-				@render()
 				@dishes.on 'reset', @render, @
 				@userOrder.on 'reset', @render, @
 				@.on 'updateMenu', @initialize, @
@@ -670,13 +700,12 @@ $ ->
 			'click .delete': 'deleteOrder'
 			'click .calendar': 'orderCalendar'
 
-			'click .preview': 'previewOrder',
-			'change select.user': 'changeUser'
+			'click .preview': 'previewOrder'
 
-		changeUser: (e) ->
-			userId = $(e.target).val()
-			@attributes.userId = userId
-			@trigger 'updateMenu'
+#		changeUser: (e) ->
+#			userId = $(e.target).val()
+#			@attributes.userId = userId
+#			@trigger 'updateMenu'
 
 		slideToggleMenu: (e)->
 			e.preventDefault()
@@ -715,7 +744,7 @@ $ ->
 			selectedSupplier = $('#supplier-selector').val()
 			orderedDishes = []
 			orderBlock = $('#main .order')
-			userId = orderBlock.find('.user').val()
+			userId = ViewsLiteral.userSelector.userId
 			_.each orderBlock.find('.dish-order'), (item) =>
 				if $(item).val()
 					orderedDishes.push({
@@ -753,7 +782,18 @@ $ ->
 				_.each @attributes.copyData, (item, dishId) =>
 					copyUserOrder[dishId] = @attributes.copyData[dishId]
 
-			$(@el).html _.template $('#order-template').html(), {model: @model, copyUserOrder: copyUserOrder, dishesByCategory: dishesByCategory, currentDay: @attributes.currentDay, dishCategories: @dishCategories, users: @users, userOrder: userOrder}
+			$(@el).html _.template $('#order-template').html(), {
+				model: @model,
+				copyUserOrder: copyUserOrder,
+				dishesByCategory: dishesByCategory,
+				currentDay: @attributes.currentDay,
+				dishCategories: @dishCategories,
+				users: @users,
+				userOrder: userOrder,
+				orderOwnerId: @attributes.userId
+				currentUser: ViewsLiteral.userSelector.userId
+			}
+
 			if @attributes.userId
 				$('#main .order .user').val(@attributes.userId)
 
@@ -795,7 +835,7 @@ $ ->
 			@collection.on 'reset', @render, @
 
 		events: ->
-			'click .add': 'addSupplier'
+			'click .supplier.add': 'addSupplier'
 
 		addSupplier: (e) ->
 			e.preventDefault()
@@ -808,7 +848,7 @@ $ ->
 					@renderSupplier item, @collection
 			else
 				$('.suppliers-list').html('<h2>Hи одного поставщика не добавлено</h2>')
-			$('.suppliers-list a.add').show()
+			$('a.add.supplier').show()
 
 		renderSupplier: (model, collection)->
 			supplierView = new SupplierView model: model, collection: collection
@@ -825,12 +865,14 @@ $ ->
 
 		render: ->
 			$('.suppliers-list ul').empty()
-			$('.suppliers-list a.add').hide()
+			$('a.add.supplier').hide()
 			$(@el).html _.template $('#supplier-form-template').html()
 			container = $(@el)
 			if @model
 				_.each @model.attributes, (item, key) ->
 					container.find('[name="' + key + '"]').val(item)
+				ViewsLiteral.dishCategory = new DishCategoriesView({attributes: {supplier: @model.attributes}})
+				ViewsLiteral.dishCategory.updateList()
 
 		save: ->
 			formData = {}
@@ -858,6 +900,37 @@ $ ->
 			$(@$el).html _.template $('#supplier-template').html(), @model.attributes
 			@
 
+	class DishCategoriesView extends Backbone.View
+		el: '#dish-categories'
+
+		initialize: ->
+
+		updateList: ->
+			@categories = new DishCategoryList()
+			@categories.url = '/dish_category/' + @attributes.supplier.id
+			@categories.fetch()
+			@categories.on 'reset', @render, @
+
+		events: ->
+
+		render: ->
+			if @categories.length
+				_.each @categories.models, (model)->
+					categoryView = new DishCategoryView model: model
+					$(@el).find('ul').append categoryView.render().el
+
+	class DishCategoryView extends Backbone.View
+		tagName: 'li'
+
+		events:->
+			'click .edit': 'edit'
+			'click .delete': 'delete'
+
+		edit: (e) ->
+			e.preventDefault()
+
+		delete: (e)->
+			e.preventDefault()
 
 	class OrderButtonView extends Backbone.View
 		buttonSelector: 'header .order-button a'

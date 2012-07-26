@@ -24,7 +24,7 @@
 
 
     </div>
-	<a href="#" class="add btn btn-success">Добавить</a>
+	<a href="#" class="supplier add btn btn-success">Добавить</a>
 
 	<div class="supplier-form"></div>
 </script>
@@ -80,6 +80,8 @@
 							<input type="text" name="min_order"/>
 						</div>
 					</div>
+
+					<div id="dish-categories"></div>
 				</div>
 				<div class="span4">
 					<div class="control-group">
@@ -104,68 +106,20 @@
 	</div>
 </script>
 
-<script type="text/template" id="preferences-send-template">
-	<div class="form form-horizontal send">
-		<fieldset>
-			<div class="row">
-				<div class="span4">
-					<div class="control-group">
-						<label class="control-label">Кому</label>
-						<div class="controls">
-							<input type="text" name="address" value="<@=model.address@>"/>
-						</div>
-					</div>
-
-					<div class="control-group">
-						<label class="control-label">Копия</label>
-						<div class="controls">
-							<input type="text" name="cc" value="<@=model.cc@>"/>
-						</div>
-					</div>
-
-					<div class="control-group">
-						<label class="control-label">Тема</label>
-						<div class="controls">
-							<input type="text" name="subject" value="<@=model.subject@>"/>
-						</div>
-					</div>
-				</div>
-				<div class="span4">
-					<div class="control-group">
-						<label class="control-label">Шаблон</label>
-						<div class="controls">
-							<textarea name="template"><@=model.template@></textarea>
-						</div>
-					</div>
-				</div>
-			</div>
-			<div class="row">
-				<button type="submit" class="btn">Submit</button>
-			</div>
-		</fieldset>
-	</div>
-
+<script type="text/template" id="dish-categories-template">
+	<ul></ul>
+	<input type="text" name="name"/>
+	<label>
+	Включать в заказ
+	<input type="checkbox" name="includeInOrder"/>
+	</label>
+	<button class="btn" type="submit">Добавить</button>
 </script>
 
-<script type="text/template" id="preferences-params-template">
-	<div class="form form-horizontal params">
-		<fieldset>
-			<div class="row">
-				<div class="span4">
-					<div class="control-group">
-						<label class="control-label">Минимальный заказ</label>
-						<div class="controls">
-							<input type="text" name="min_order"/>
-						</div>
-					</div>
-				</div>
-			</div>
-			<div class="row">
-				<button type="submit" class="btn">Submit</button>
-			</div>
-		</fieldset>
-	</div>
+<script type="text/template" id="dish-category-item-template">
+	<a href="#" class="edit"><@=name @></a> <a href="#" class="delete">Удалить</a>
 </script>
+
 
 <script type="text/template" id="preferences-team-template">
 	<form class="form form-inline team-user-form">
@@ -329,11 +283,11 @@
 		<@ if (dishesByCategory) { @>
 			<div class="order-date"><h2>Заказ на <@=currentDay.format('dddd, DD MMMM')@></h2></div>
 
-			<select class="user">
-				<@ _.each(users.models, function(user) {@>
-					<option value="<@=user.attributes.id@>"><@=user.attributes.name@></option>
-				<@ }) @>
-			</select>
+			<!--<select class="user">-->
+				<!--<@ _.each(users.models, function(user) {@>-->
+					<!--<option value="<@=user.attributes.id@>"><@=user.attributes.name@></option>-->
+				<!--<@ }) @>-->
+			<!--</select>-->
 			<@ _.each(dishesByCategory, function(dishes, categoryId) { @>
 				<div class="category-dish-name">
 					<@=dishCategories[categoryId]@>
@@ -358,7 +312,7 @@
 			<@ }) @>
 
 			<div class="control-buttons">
-				<@ if (!model || (model && !model.attributes.sentAt)) {@>
+				<@ if ((!model || (model && !model.attributes.sentAt)) && (!orderOwnerId || (orderOwnerId && orderOwnerId == currentUser))) {@>
 					<a href="#" class="delete btn btn-danger">Удалить</a>
 				<@ } @>
 				<a href="#" class="cancel btn">Отменить</a>
@@ -371,7 +325,7 @@
 					</a>
 				</div>
 
-				<@ if (!model || (model && !model.attributes.sentAt)) {@>
+				<@ if ((!model || (model && !model.attributes.sentAt)) && (!orderOwnerId || (orderOwnerId && orderOwnerId == currentUser))) {@>
 					<a href="#" class="save btn btn-success">Заказать</a>
 				<@ } @>
 
@@ -490,4 +444,14 @@
 	</div>
 	<hr/>
 	<button class="save btn btn-success">Сохранить</button>
+</script>
+
+
+<script type="text/template" id="user-selector-template">
+	<select>
+		<option value=""></option>
+		<@ _.each(users, function(item) {@>
+			<option value="<@=item.attributes.id@>" <@= currentUser == item.attributes.id ? 'selected="selected"' : ''@>><@=item.attributes.name@></option>
+		<@ })@>
+	</select>
 </script>

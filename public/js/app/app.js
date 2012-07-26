@@ -12,7 +12,7 @@
   ViewsLiteral = {};
 
   $(function() {
-    var AccessorisMenuView, AppMenuView, BillingView, DayOrderView, DishesMenuView, EditSupplierView, FullOrderView, IndexView, MenuDishFormView, MenuView, OrderButtonView, OrderView, PreferencesParamsView, PreferencesSendView, PreferencesTeamView, PreferencesUserView, PreferencesView, PreferencesViews, PreviewEmailView, Route, SupplierView, SuppliersSelectorView, SuppliersView, Views, WeekDayOrderView, WeekOrderView, WeekSwitcherView, routes;
+    var AccessorisMenuView, AppMenuView, BillingView, DayOrderView, DishCategoriesView, DishCategoryView, DishesMenuView, EditSupplierView, FullOrderView, IndexView, MenuDishFormView, MenuView, OrderButtonView, OrderView, PreferencesParamsView, PreferencesSendView, PreferencesTeamView, PreferencesUserView, PreferencesView, PreferencesViews, PreviewEmailView, Route, SupplierView, SuppliersSelectorView, SuppliersView, UserSelectorView, Views, WeekDayOrderView, WeekOrderView, WeekSwitcherView, routes;
     Route = (function(_super) {
 
       __extends(Route, _super);
@@ -33,7 +33,9 @@
       };
 
       Route.prototype.initialize = function() {
-        return new AppMenuView();
+        new AppMenuView();
+        ViewsLiteral.userSelector = new UserSelectorView();
+        return ViewsLiteral.userSelector.updateList();
       };
 
       Route.prototype.index = function() {
@@ -122,6 +124,48 @@
       IndexView.prototype.render = function() {};
 
       return IndexView;
+
+    })(Backbone.View);
+    UserSelectorView = (function(_super) {
+
+      __extends(UserSelectorView, _super);
+
+      function UserSelectorView() {
+        return UserSelectorView.__super__.constructor.apply(this, arguments);
+      }
+
+      UserSelectorView.prototype.el = '#user-selector';
+
+      UserSelectorView.prototype.initialize = function() {
+        this.users = new UserList();
+        this.users.on('reset', this.render, this);
+        return this.userId = $.cookie('user');
+      };
+
+      UserSelectorView.prototype.events = function() {
+        return {
+          'change select': 'setUser'
+        };
+      };
+
+      UserSelectorView.prototype.setUser = function(e) {
+        this.userId = $(e.target).val();
+        return $.cookie('user', this.userId);
+      };
+
+      UserSelectorView.prototype.render = function() {
+        $(this.el).html(_.template($('#user-selector-template').html(), {
+          users: this.users.models,
+          currentUser: this.userId
+        }));
+        return this;
+      };
+
+      UserSelectorView.prototype.updateList = function() {
+        return this.users.fetch();
+      };
+
+      return UserSelectorView;
 
     })(Backbone.View);
     /*
@@ -1052,6 +1096,14 @@
 
       OrderView.prototype.initialize = function() {
         var _this = this;
+        if (_.isEmpty(ViewsLiteral.userSelector.userId)) {
+          alert('Для редактирования и просмотра заказа выберите пользователя вверху');
+          routes.navigate("!/week-order", {
+            trigger: true,
+            replace: true
+          });
+          return;
+        }
         this.users = new UserList();
         this.users.fetch();
         this.users.on('reset', function(usersList) {
@@ -1062,7 +1114,6 @@
           }
           _this.dishes = new DishList();
           _this.dishes.fetch();
-          _this.render();
           _this.dishes.on('reset', _this.render, _this);
           _this.userOrder.on('reset', _this.render, _this);
           return _this.on('updateMenu', _this.initialize, _this);
@@ -1078,16 +1129,8 @@
           'click .cancel': 'cancelOrder',
           'click .delete': 'deleteOrder',
           'click .calendar': 'orderCalendar',
-          'click .preview': 'previewOrder',
-          'change select.user': 'changeUser'
+          'click .preview': 'previewOrder'
         };
-      };
-
-      OrderView.prototype.changeUser = function(e) {
-        var userId;
-        userId = $(e.target).val();
-        this.attributes.userId = userId;
-        return this.trigger('updateMenu');
       };
 
       OrderView.prototype.slideToggleMenu = function(e) {
@@ -1143,7 +1186,7 @@
         selectedSupplier = $('#supplier-selector').val();
         orderedDishes = [];
         orderBlock = $('#main .order');
-        userId = orderBlock.find('.user').val();
+        userId = ViewsLiteral.userSelector.userId;
         _.each(orderBlock.find('.dish-order'), function(item) {
           if ($(item).val()) {
             return orderedDishes.push({
@@ -1200,7 +1243,9 @@
           currentDay: this.attributes.currentDay,
           dishCategories: this.dishCategories,
           users: this.users,
-          userOrder: userOrder
+          userOrder: userOrder,
+          orderOwnerId: this.attributes.userId,
+          currentUser: ViewsLiteral.userSelector.userId
         }));
         if (this.attributes.userId) {
           $('#main .order .user').val(this.attributes.userId);
@@ -1264,7 +1309,7 @@
 
       SuppliersView.prototype.events = function() {
         return {
-          'click .add': 'addSupplier'
+          'click .supplier.add': 'addSupplier'
         };
       };
 
@@ -1286,7 +1331,7 @@
         } else {
           $('.suppliers-list').html('<h2>Hи одного поставщика не добавлено</h2>');
         }
-        return $('.suppliers-list a.add').show();
+        return $('a.add.supplier').show();
       };
 
       SuppliersView.prototype.renderSupplier = function(model, collection) {
@@ -1324,13 +1369,19 @@
       EditSupplierView.prototype.render = function() {
         var container;
         $('.suppliers-list ul').empty();
-        $('.suppliers-list a.add').hide();
+        $('a.add.supplier').hide();
         $(this.el).html(_.template($('#supplier-form-template').html()));
         container = $(this.el);
         if (this.model) {
-          return _.each(this.model.attributes, function(item, key) {
+          _.each(this.model.attributes, function(item, key) {
             return container.find('[name="' + key + '"]').val(item);
           });
+          ViewsLiteral.dishCategory = new DishCategoriesView({
+            attributes: {
+              supplier: this.model.attributes
+            }
+          });
+          return ViewsLiteral.dishCategory.updateList();
         }
       };
 
@@ -1382,6 +1433,70 @@
       };
 
       return SupplierView;
+
+    })(Backbone.View);
+    DishCategoriesView = (function(_super) {
+
+      __extends(DishCategoriesView, _super);
+
+      function DishCategoriesView() {
+        return DishCategoriesView.__super__.constructor.apply(this, arguments);
+      }
+
+      DishCategoriesView.prototype.el = '#dish-categories';
+
+      DishCategoriesView.prototype.initialize = function() {};
+
+      DishCategoriesView.prototype.updateList = function() {
+        this.categories = new DishCategoryList();
+        this.categories.url = '/dish_category/' + this.attributes.supplier.id;
+        this.categories.fetch();
+        return this.categories.on('reset', this.render, this);
+      };
+
+      DishCategoriesView.prototype.events = function() {};
+
+      DishCategoriesView.prototype.render = function() {
+        if (this.categories.length) {
+          return _.each(this.categories.models, function(model) {
+            var categoryView;
+            categoryView = new DishCategoryView({
+              model: model
+            });
+            return $(this.el).find('ul').append(categoryView.render().el);
+          });
+        }
+      };
+
+      return DishCategoriesView;
+
+    })(Backbone.View);
+    DishCategoryView = (function(_super) {
+
+      __extends(DishCategoryView, _super);
+
+      function DishCategoryView() {
+        return DishCategoryView.__super__.constructor.apply(this, arguments);
+      }
+
+      DishCategoryView.prototype.tagName = 'li';
+
+      DishCategoryView.prototype.events = function() {
+        return {
+          'click .edit': 'edit',
+          'click .delete': 'delete'
+        };
+      };
+
+      DishCategoryView.prototype.edit = function(e) {
+        return e.preventDefault();
+      };
+
+      DishCategoryView.prototype["delete"] = function(e) {
+        return e.preventDefault();
+      };
+
+      return DishCategoryView;
 
     })(Backbone.View);
     OrderButtonView = (function(_super) {

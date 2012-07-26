@@ -3,11 +3,16 @@ async = require('async');
 
 class UserDayOrderController
 	unpaid: (req, res) ->
+		orderCriteria = {}
 		if req.params.user
+			orderCriteria.payer = req.params.user
+
+
+#		if req.params.user
 			UserDayOrder
 				.find({is_paid: false})
 				.populate('user')
-				.populate('order', null, { payer: req.params.user})
+				.populate('order', null, orderCriteria)
 				.exec (err, models) ->
 					async.reduce(models, [], (userOrders, userDayOrder, onUserDayOrder) ->
 						if (_.isEmpty(userDayOrder.order))
@@ -21,19 +26,20 @@ class UserDayOrderController
 					, (err, userOrders) ->
 						res.send userOrders
 					)
-		else
-			UserDayOrder.find({is_paid: false}).populate('user').populate('order').exec (err, models) ->
-				if !err
-					async.map models, (model, callback) ->
-						model.order.getTotalUserOrder model.user._id, (result) =>
-							model.order.total = result
-							callback null, model
-					, (err, models) ->
-						res.send models
-				else
-					console.log err
+#		else
+#			UserDayOrder.find({is_paid: false}).populate('user').populate('order').exec (err, models) ->
+#				if !err
+#					async.map models, (model, callback) ->
+#						model.order.getTotalUserOrder model.user._id, (result) =>
+#							model.order.total = result
+#							callback null, model
+#					, (err, models) ->
+#						res.send models
+#				else
+#					console.log err
 
 	pay: (req, res) ->
+		# use async to save all in parallel and only then response back to UI
 		_.each req.body, (orderId) ->
 			UserDayOrder.findById(orderId).exec (err, model) ->
 				model.is_paid = true

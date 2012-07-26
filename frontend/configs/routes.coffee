@@ -1,8 +1,6 @@
 exports.apply = (app) ->
 	self = this
 
-	acl = $.component 'acl'
-
 	app.get '/', [
 		$.beforeAction,
 		$.controller('site').index
@@ -138,4 +136,24 @@ exports.apply = (app) ->
 	app.post '/user_day_orders', [
 		$.beforeAction
 		$.controller('userDayOrder').pay
+	]
+
+	app.get '/dish_category/:id', [
+		$.beforeAction
+		$.controller('dishCategory').getBySupplier
+	]
+
+	app.post '/dish_category', [
+		$.beforeAction
+		$.controller('dishCategory').create
+	]
+
+	app.put '/dish_category/:id', [
+		$.beforeAction
+		$.controller('dishCategory').update
+	]
+
+	app.delete '/dish_category/:id', [
+		$.beforeAction
+		$.controller('dishCategory').delete
 	]

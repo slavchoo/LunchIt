@@ -1,5 +1,6 @@
 moment = require 'moment'
 _ = require "underscore"
+async = require('async');
 
 class UserOrderController
 	list: (req, res) ->
@@ -11,61 +12,40 @@ class UserOrderController
 
 	create: (req, res) ->
 		orderParams = req.body[0]
-		orderId = 0
-		if orderParams && !orderParams.order
-			Supplier.findOne().exec (err, supplierModel ) ->
-				order = new Order({
-					supplier: supplierModel._id
-					createdAt: orderParams.date
-				})
-				order.save()
-				orderId = order._id
+		orderId = if orderParams and orderParams.order then orderParams.order else undefined
+		async.waterfall [(next) ->
+				if orderId
+					next null, orderId
+				else
+					Supplier.findOne().exec (err, supplierModel ) ->
+						order = new Order({
+							supplier: supplierModel._id
+							createdAt: orderParams.date
+						})
+						order.save (err) ->
+							orderId = order._id
+							next err, orderId
+			, (orderId, next) ->
+				UserDayOrder.findOne({'order': orderId, 'user': orderParams.user}).exec (err, model) ->
+					if !model
+						userDayOrder = new UserDayOrder({
+							order: orderId
+							user: orderParams.user
+						})
+						userDayOrder.save (err) ->
+							next null, orderId
+					else
+						next null, orderId
 
-				###
-					Change this code!!!!
-				###
-				#remove all models and create new form request
+			, (orderId, next) ->
 				UserOrder.find({'order': orderId, 'user': orderParams.user}).exec (err, models) ->
-					_.each models, (model) ->
-						model.remove()
-
-					_.each req.body, (item) ->
-						Dish.findById(item.dish).exec (err, doc) =>
-							model = new UserOrder {
-								dish: item.dish
-								user: item.user
-								quantity: item.quantity
-								order: orderId
-								price: doc.price
-							}
-							model.save (err) ->
-								if !err
-									console.log 'user order created'
-								else
-									console.log err
-
-					UserDayOrder.findOne({'order': orderId, 'user': orderParams.user}).exec (err, model) ->
-						if !model
-							userDayOrder = new UserDayOrder({
-								order: orderId
-								user: orderParams.user
-							})
-							userDayOrder.save()
-
-
-				res.send orderId
-
-		else
-			orderId = orderParams.order
-			###
-					Change this code!!!!
-				###
-			#remove all models and create new form request
-			UserOrder.find({'order': orderId, 'user': orderParams.user}).exec (err, models) ->
-				_.each models, (model) ->
+					next err, models
+			, (models, next) ->
+				async.forEach models, (model) ->
 					model.remove()
-
-				_.each req.body, (item) ->
+				, next
+			, (next) ->
+				async.forEach _.toArray(req.body), (item, onUserOrderSave) ->
 					Dish.findById(item.dish).exec (err, doc) =>
 						model = new UserOrder {
 							dish: item.dish
@@ -74,21 +54,91 @@ class UserOrderController
 							order: orderId
 							price: doc.price
 						}
-						model.save (err) ->
-							if !err
-								console.log 'user order created'
-							else
-								console.log err
+						model.save onUserOrderSave
+				, next
+		], (err) ->
+			res.send ''
+			#find by order id
 
-				UserDayOrder.findOne({'order': orderId, 'user': orderParams.user}).exec (err, model) ->
-					if !model
-						userDayOrder = new UserDayOrder({
-							order: orderId
-							user: orderParams.user
-						})
-						userDayOrder.save()
 
-			res.send orderId
+
+#		if orderParams && !orderParams.order
+#			Supplier.findOne().exec (err, supplierModel ) ->
+#				order = new Order({
+#					supplier: supplierModel._id
+#					createdAt: orderParams.date
+#				})
+#				order.save()
+#				orderId = order._id
+#
+#				###
+#					Change this code!!!!
+#				###
+#				#remove all models and create new form request
+#				UserOrder.find({'order': orderId, 'user': orderParams.user}).exec (err, models) ->
+#					_.each models, (model) ->
+#						model.remove()
+#
+#					_.each req.body, (item) ->
+#						Dish.findById(item.dish).exec (err, doc) =>
+#							model = new UserOrder {
+#								dish: item.dish
+#								user: item.user
+#								quantity: item.quantity
+#								order: orderId
+#								price: doc.price
+#							}
+#							model.save (err) ->
+#								if !err
+#									console.log 'user order created'
+#								else
+#									console.log err
+#
+#					UserDayOrder.findOne({'order': orderId, 'user': orderParams.user}).exec (err, model) ->
+#						if !model
+#							userDayOrder = new UserDayOrder({
+#								order: orderId
+#								user: orderParams.user
+#							})
+#							userDayOrder.save()
+#
+#
+#				res.send orderId
+#
+#		else
+#			orderId = orderParams.order
+#			###
+#					Change this code!!!!
+#				###
+#			#remove all models and create new form request
+#			UserOrder.find({'order': orderId, 'user': orderParams.user}).exec (err, models) ->
+#				_.each models, (model) ->
+#					model.remove()
+#
+#				_.each req.body, (item) ->
+#					Dish.findById(item.dish).exec (err, doc) =>
+#						model = new UserOrder {
+#							dish: item.dish
+#							user: item.user
+#							quantity: item.quantity
+#							order: orderId
+#							price: doc.price
+#						}
+#						model.save (err) ->
+#							if !err
+#								console.log 'user order created'
+#							else
+#								console.log err
+#
+#				UserDayOrder.findOne({'order': orderId, 'user': orderParams.user}).exec (err, model) ->
+#					if !model
+#						userDayOrder = new UserDayOrder({
+#							order: orderId
+#							user: orderParams.user
+#						})
+#						userDayOrder.save()
+#
+#			res.send orderId
 
 
 	update: (req, res) ->

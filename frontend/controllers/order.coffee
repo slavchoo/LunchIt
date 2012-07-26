@@ -27,6 +27,7 @@ class OrderController
 				console.log err
 		res.send model
 
+	#set new prices for current order and all dishes
 	updateOrder: (req, res) ->
 		UserOrder.find({'order': req.params.id}).exec (err, models) ->
 			if !err
@@ -39,13 +40,11 @@ class OrderController
 			else
 				console.log err
 
+	#set payer and mark payer order as is_paid
 	update: (req, res) ->
 		UserDayOrder.find({'order': req.params.id}).exec (err, models) ->
 			_.each models, (order) ->
-				if order.user.toString() == req.body.payer.toString()
-					order.is_paid = true
-				else
-					order.is_paid = false
+				order.is_paid = (order.user.toString() == req.body.payer.toString())
 				order.save()
 
 			Order.findById(req.params.id).exec (err, model) ->
@@ -110,6 +109,7 @@ class OrderController
 
 					res.send orderText
 
+	#order for selected day
 	day: (req, res) ->
 		Order.findOne()
 			.where('createdAt').gte(moment(req.params.date).unix()).lte(moment(req.params.date).add('days', 1).unix())

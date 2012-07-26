@@ -11,6 +11,7 @@ require './models/dish'
 require './models/order'
 require './models/user_order'
 require './models/user_day_order'
+require './models/dish_category'
 
 app.path =  path = require 'path'
 app.jsHandler  = jsHandler = ""

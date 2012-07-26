@@ -1,5 +1,5 @@
 (function() {
-  var Dish, DishList, Order, OrderList, Supplier, SupplierList, User, UserDayOrder, UserDayOrderList, UserList, UserOrder, UserOrderList,
+  var Dish, DishCategory, DishCategoryList, DishList, Order, OrderList, Supplier, SupplierList, User, UserDayOrder, UserDayOrderList, UserList, UserOrder, UserOrderList,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -92,7 +92,9 @@
     }
 
     UserOrder.prototype.parse = function(response) {
-      response.id = response._id;
+      if (response) {
+        response.id = response._id;
+      }
       return response;
     };
 
@@ -114,6 +116,20 @@
 
   })(Backbone.Model);
 
+  DishCategory = (function(_super) {
+
+    __extends(DishCategory, _super);
+
+    function DishCategory() {
+      return DishCategory.__super__.constructor.apply(this, arguments);
+    }
+
+    DishCategory.prototype.idAttribute = "_id";
+
+    return DishCategory;
+
+  })(Backbone.Model);
+
   window.User = User;
 
   window.Supplier = Supplier;
@@ -123,6 +139,8 @@
   window.UserOrder = UserOrder;
 
   window.UserDayOrder = UserDayOrder;
+
+  window.DishCategory = DishCategory;
 
   UserList = (function(_super) {
 
@@ -247,6 +265,22 @@
 
   })(Backbone.Collection);
 
+  DishCategoryList = (function(_super) {
+
+    __extends(DishCategoryList, _super);
+
+    function DishCategoryList() {
+      return DishCategoryList.__super__.constructor.apply(this, arguments);
+    }
+
+    DishCategoryList.prototype.model = DishCategory;
+
+    DishCategoryList.prototype.url = '/dish_category';
+
+    return DishCategoryList;
+
+  })(Backbone.Collection);
+
   window.UserList = UserList;
 
   window.SupplierList = SupplierList;
@@ -258,5 +292,7 @@
   window.UserOrderList = UserOrderList;
 
   window.UserDayOrderList = UserDayOrderList;
+
+  window.DishCategoryList = DishCategoryList;
 
 }).call(this);

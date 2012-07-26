@@ -1,8 +1,5 @@
 mongoose = require 'mongoose'
 Schema = mongoose.Schema
-Query = mongoose.Query
-ObjectId = Schema.ObjectId
-crypto = require 'crypto'
 
 SupplierSchema = new Schema
 	name:
@@ -25,9 +22,6 @@ SupplierSchema = new Schema
 	createdAt:
 		type: Date
 		default: Date.now
-
-toLower = (v) ->
-	v.toLowerCase()
 
 Supplier = mongoose.model 'Supplier', SupplierSchema
 global.Supplier = Supplier

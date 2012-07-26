@@ -1,8 +1,5 @@
 mongoose = require 'mongoose'
 Schema = mongoose.Schema
-Query = mongoose.Query
-ObjectId = Schema.ObjectId
-crypto = require 'crypto'
 
 UserSchema = new Schema
 	name:
@@ -11,9 +8,6 @@ UserSchema = new Schema
 	createdAt:
 		type: Date
 		default: Date.now
-
-toLower = (v) ->
-	v.toLowerCase()
 
 User = mongoose.model 'User', UserSchema
 global.User = User

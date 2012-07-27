@@ -7,7 +7,7 @@ class DishCategoryController
 				console.log err
 
 	create: (req, res) ->
-		model = new DisCategory {
+		model = new DishCategory {
 			name: req.body.name
 			supplier: req.body.supplier
 			includeInOrder: req.body.includeInOrder

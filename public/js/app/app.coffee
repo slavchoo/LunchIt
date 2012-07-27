@@ -88,7 +88,7 @@ $ ->
 
 		setUser: (e)->
 			@userId = $(e.target).val()
-			$.cookie('user', @userId)
+			$.cookie('user', @userId, {expires: 365})
 
 		render: ->
 			$(@el).html _.template $('#user-selector-template').html(), {users: @users.models, currentUser: @userId}
@@ -302,7 +302,8 @@ $ ->
 			if @current
 				@current
 			else
-				$(@el).find('select option:selected').val()
+				console.log $('#supplier-selector option:selected').val()
+				$('#supplier-selector').val()
 
 		getCurrent: ->
 			@collection.get @getCurrentId()
@@ -322,12 +323,15 @@ $ ->
 
 		initialize: ->
 			@collection = new DishList()
-			@collection.fetch()
-			@render()
-			suppliers = new SuppliersSelectorView({el: 'div.suppliers'})
 
-			@collection.on 'add', @renderDishes, @
-			@collection.on 'reset', @renderDishes, @
+			@render()
+			ViewsLiteral.supplierSelector = new SuppliersSelectorView({el: 'div.suppliers'})
+
+			ViewsLiteral.supplierSelector.collection.on 'reset', () =>
+				@collection.on 'add', @renderDishes, @
+				@collection.on 'reset', @renderDishes, @
+
+			@collection.fetch()
 
 
 		events: ->
@@ -347,9 +351,12 @@ $ ->
 
 		renderDishes: () ->
 			food = new DishesMenuView collection: @collection
+			food.on 'updateCollection', () =>
+				$('#menu-dishes').html(food.render().el)
+
 			accessories = new AccessorisMenuView collection: @collection
-			$('#menu-dishes').html(food.render().el)
-			$('#menu-accessories').html(accessories.render().el)
+			accessories.on 'updateCollection', () =>
+				$('#menu-accessories').html(accessories.render().el)
 
 		inlineEdit: (e)->
 			container = $(e.target).parents('.dish-info')
@@ -399,13 +406,28 @@ $ ->
 
 
 	class DishesMenuView extends Backbone.View
+		initialize: ->
+			@dishCategory = new DishCategoryList()
+			console.log ViewsLiteral.supplierSelector.getCurrentId()
+			@dishCategory.url = '/dish_category/' + ViewsLiteral.supplierSelector.getCurrentId()
+			@dishCategory.on 'reset', ()=>
+				@.trigger 'updateCollection'
+			@dishCategory.fetch()
+
 		render: ->
-			$(@$el).html _.template $('#menu-items-template').html(), {dishes: @collection.models, mode: 'food'}
+			$(@$el).html _.template $('#menu-items-template').html(), {dishes: @collection.models, mode: 'food', dishCategory: @dishCategory}
 			return @
 
 	class AccessorisMenuView extends Backbone.View
+		initialize: ->
+			@dishCategory = new DishCategoryList()
+			@dishCategory.url = '/dish_category/' + ViewsLiteral.supplierSelector.getCurrentId()
+			@dishCategory.on 'reset', ()=>
+				@.trigger 'updateCollection'
+			@dishCategory.fetch()
+
 		render: ->
-			$(@$el).html _.template $('#menu-items-template').html(), {dishes: @collection.models, mode: 'accessories'}
+			$(@$el).html _.template $('#menu-items-template').html(), {dishes: @collection.models, mode: 'accessories', dishCategory: @dishCategory}
 			return @
 
 
@@ -413,16 +435,22 @@ $ ->
 		el: '#dish-popup'
 
 		initialize: ->
-			@render()
-			$('#dish-form').modal({backdrop: false})
-			$('#dish-form').on 'hidden', () =>
-				@hide()
+			@dishCategory = new DishCategoryList()
+			@dishCategory.url = '/dish_category/' + ViewsLiteral.supplierSelector.getCurrentId()
+
+			@dishCategory.on 'reset', () =>
+				@render()
+				$('#dish-form').modal({backdrop: false})
+				$('#dish-form').on 'hidden', () =>
+					@hide()
+
+			@dishCategory.fetch()
 
 		events: ->
 			'click a.save': 'saveForm'
 
 		render: ->
-			$(@el).append(_.template $('#dish-form-template').html())
+			$(@el).append _.template $('#dish-form-template').html(), {dishCategory: @dishCategory.models}
 
 		saveForm: (e)->
 			e.preventDefault()
@@ -447,7 +475,7 @@ $ ->
 
 		initialize: ->
 			@render()
-			suppliers = new SuppliersSelectorView({el: 'div.suppliers'})
+			ViewsLiteral.supplierSelector = new SuppliersSelectorView({el: 'div.suppliers'})
 			#week swetcher
 			weekSwitcher = new WeekSwitcherView
 			weekSwitcher.render()
@@ -529,21 +557,19 @@ $ ->
 		preview: (e) ->
 			e.preventDefault()
 			ViewsLiteral.fullOrderPopup = new FullOrderView({collection: @collection, model: @model, attributes: {currentDay: @attributes.currentDay}})
-			ViewsLiteral.fullOrderPopup.render()
+			ViewsLiteral.fullOrderPopup.updateCollections()
 
 
 	class FullOrderView extends Backbone.View
 		el: '#full-order-popup'
-		dishCategories:
-			1: 'Супы'
-			2: 'Мясо'
-			3: 'Гарниры'
-			4: 'Салаты'
-			5: 'Блины'
-			6: 'Другое'
-			7: 'Контейнеры'
 
 		initialize: ->
+
+		updateCollections: ->
+			@dishCategories = new DishCategoryList()
+			@dishCategories.url = '/dish_category/' + ViewsLiteral.supplierSelector.getCurrentId()
+			@dishCategories.on 'reset', @render(), @
+			@dishCategories.fetch()
 
 		events: ->
 			'click .save': 'save'
@@ -657,16 +683,6 @@ $ ->
 		datepicker: '.datepicker-focus'
 		copyDate: undefined
 
-		dishCategories:
-			1: 'Супы'
-			2: 'Мясо'
-			3: 'Гарниры'
-			4: 'Салаты'
-			5: 'Блины'
-			6: 'Другое'
-			7: 'Контейнеры'
-
-
 		initialize: ->
 			if _.isEmpty(ViewsLiteral.userSelector.userId)
 				alert('Для редактирования и просмотра заказа выберите пользователя вверху')
@@ -674,20 +690,26 @@ $ ->
 				return
 
 			@users = new UserList()
-			@users.fetch()
 
-			@users.on 'reset', (usersList) =>
-				@userOrder = new UserOrderList()
-				if @attributes.userId && @model
-					@userOrder.url = '/user_orders/' + @attributes.userId + '/' + @model.attributes.id
-					@userOrder.fetch()
+			@dishCategories = new DishCategoryList()
+			@dishCategories.url = '/dish_category/' + ViewsLiteral.supplierSelector.getCurrentId()
 
-				@dishes = new DishList()
-				@dishes.fetch()
+			@dishCategories.on 'reset', () =>
+				@users.on 'reset', (usersList) =>
+					@userOrder = new UserOrderList()
+					@dishes = new DishList()
+					console.log '333'
+					@dishes.on 'reset', @render, @
+					@userOrder.on 'reset', @render, @
 
-				@dishes.on 'reset', @render, @
-				@userOrder.on 'reset', @render, @
-				@.on 'updateMenu', @initialize, @
+					@dishes.fetch()
+					if @attributes.userId && @model
+						@userOrder.url = '/user_orders/' + @attributes.userId + '/' + @model.attributes.id
+						@userOrder.fetch()
+					@.on 'updateMenu', @initialize, @
+
+				@users.fetch()
+			@dishCategories.fetch()
 
 			routes.navigate("!/user-order");
 
@@ -861,7 +883,7 @@ $ ->
 			@render()
 
 		events: ->
-			'click button': 'save'
+			'click .save-supplier': 'save'
 
 		render: ->
 			$('.suppliers-list ul').empty()
@@ -876,7 +898,7 @@ $ ->
 
 		save: ->
 			formData = {}
-			_.each $(@el).find('input, select, textarea'), (item) ->
+			_.each $(@el).find('.control-group').find('input, select, textarea'), (item) ->
 				formData[$(item).attr('name')] = $(item).val()
 			if !@model
 				@model = new Supplier(formData)
@@ -912,12 +934,34 @@ $ ->
 			@categories.on 'reset', @render, @
 
 		events: ->
+			'click .save-category': 'add'
+
+		add: (e) ->
+			e.preventDefault()
+			formData = {}
+			_.each $(@el).find('.form input'), (item) ->
+				formData[$(item).attr('name')] = $(item).val()
+			formData['supplier'] = @attributes.supplier.id
+
+			if @editModel
+				@editModel.on 'change', @updateList, @
+				@editModel.url = '/dish_category/' + @editModel.id
+				@editModel.save formData
+				@editModel = null
+			else
+				@categories.url = '/dish_category'
+				@categories.on 'add', @updateList, @
+				@categories.create(formData, {wait: true})
+
 
 		render: ->
+			$(@el).html _.template $('#dish-categories-template').html()
 			if @categories.length
-				_.each @categories.models, (model)->
+				_.each @categories.models, (model)=>
 					categoryView = new DishCategoryView model: model
 					$(@el).find('ul').append categoryView.render().el
+
+			@
 
 	class DishCategoryView extends Backbone.View
 		tagName: 'li'
@@ -926,11 +970,26 @@ $ ->
 			'click .edit': 'edit'
 			'click .delete': 'delete'
 
+		render: ->
+			$(@$el).html _.template $('#dish-category-item-template').html(), @model.toJSON()
+			@
+
 		edit: (e) ->
 			e.preventDefault()
+			_.each $('#dish-categories .form input'), (item) =>
+				if $(item).attr('type') == 'checkbox'
+					if @model.attributes[$(item).attr('name')] then $(item).attr('checked', 'checked') else $(item).removeAttr('checked')
+				else
+					$(item).val(@model.attributes[$(item).attr('name')])
+
+			ViewsLiteral.dishCategory.editModel = @model
 
 		delete: (e)->
 			e.preventDefault()
+			@model.url = '/dish_category/' + @model.id
+			@model.destroy()
+			@remove()
+
 
 	class OrderButtonView extends Backbone.View
 		buttonSelector: 'header .order-button a'

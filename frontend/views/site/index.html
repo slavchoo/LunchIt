@@ -83,7 +83,7 @@
 
 					<div id="dish-categories"></div>
 				</div>
-				<div class="span4">
+				<div class="span4 offset1">
 					<div class="control-group">
 						<label class="control-label">Шаблон</label>
 						<div class="controls">
@@ -100,20 +100,23 @@
 				</div>
 			</div>
 			<div class="row">
-				<button type="submit" class="btn btn-success">Сохранить</button>
+				<button type="submit" class="save-supplier btn btn-success">Сохранить</button>
 			</div>
 		</fieldset>
 	</div>
 </script>
 
 <script type="text/template" id="dish-categories-template">
+	<h3>Категории блюд</h3>
 	<ul></ul>
-	<input type="text" name="name"/>
-	<label>
-	Включать в заказ
-	<input type="checkbox" name="includeInOrder"/>
-	</label>
-	<button class="btn" type="submit">Добавить</button>
+	<div class="form">
+		<input type="text" name="name"/>
+		<label>
+		Включать в заказ
+		<input type="checkbox" name="includeInOrder"/>
+		</label>
+		<button class="btn save-category" type="submit">Добавить</button>
+	</div>
 </script>
 
 <script type="text/template" id="dish-category-item-template">
@@ -171,13 +174,9 @@
 						<label class="control-label">Категория</label>
 						<div class="controls">
 							<select name="category">
-								<option value="1">Супы</option>
-								<option value="2">Мясо</option>
-								<option value="3">Гарниры</option>
-								<option value="4">Салаты</option>
-								<option value="5">Блины</option>
-								<option value="6">Другое</option>
-								<option value="7">Контейнеры</option>
+								<@ _.each(dishCategory, function(item) {@>
+									<option value="<@=item.id@>"><@=item.attributes.name@></option>
+								<@ })@>
 							</select>
 						</div>
 					</div>
@@ -205,7 +204,7 @@
 
 <script type="text/template" id="menu-items-template">
 	<@ _.each(dishes, function(dish, index) { @>
-		<@ if ((mode == 'accessories' && dish.attributes.category == 7) || (mode == 'food' && dish.attributes.category != 7)) { @>
+		<@ if ((!dishCategory.get(dish.attributes.category) || (mode == 'accessories' && dishCategory.get(dish.attributes.category).attributes.includeInOrder == false)) || (!dishCategory.get(dish.attributes.category) || (mode == 'food' && dishCategory.get(dish.attributes.category).attributes.includeInOrder == true))) { @>
 			<div class="row">
 				<input type="checkbox"/>
 				<div class="dish-info" attributeId="<@=dish.attributes.id@>">
@@ -216,13 +215,9 @@
 					<div class="edit hide">
 						<input type="text" class="name" name="name"/>
 						<select name="category">
-							<option value="1">Супы</option>
-							<option value="2">Мясо</option>
-							<option value="3">Гарниры</option>
-							<option value="4">Салаты</option>
-							<option value="5">Блины</option>
-							<option value="6">Другое</option>
-							<option value="7">Контейнеры</option>
+							<@ _.each(dishCategory.models, function(item) {@>
+								<option value="<@=item.id@>"><@=item.attributes.name@></option>
+							<@ })@>
 						</select>
 						<span><input type="text" class="price" name="price"/></span>
 					</div>
@@ -290,7 +285,7 @@
 			<!--</select>-->
 			<@ _.each(dishesByCategory, function(dishes, categoryId) { @>
 				<div class="category-dish-name">
-					<@=dishCategories[categoryId]@>
+					<@=!dishCategories.get(categoryId) ? 'Не известно' : dishCategories.get(categoryId).attributes.name@>
 				</div>
 				<table class="table table-striped">
 				<@ _.each(dishes, function(dish) { @>
@@ -349,7 +344,7 @@
 			<div class="modal-body">
 				<@ _.each(fullOrderDishes, function(dishes, categoryId) { @>
 					<div class="category-dish-name">
-						<@=dishCategories[categoryId]@>
+						<@=dishCategories.get(categoryId).attributes.name@>
 					</div>
 					<table class="">
 						<@ _.each(dishes, function(dish, dishId) { @>
@@ -410,7 +405,6 @@
 	<div class="payer-name">
 		<select>
 			<option value=""></option>
-
 			<@ _.each(users, function(user) {@>
 				<option value="<@=user.attributes.id@>" <@= orders && (user.attributes.id == orders.attributes.payer) ? 'selected="selected"' : ''@>><@=user.attributes.name@></option>
 			<@ }) @>

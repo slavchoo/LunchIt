@@ -150,7 +150,9 @@
 
       UserSelectorView.prototype.setUser = function(e) {
         this.userId = $(e.target).val();
-        return $.cookie('user', this.userId);
+        return $.cookie('user', this.userId, {
+          expires: 365
+        });
       };
 
       UserSelectorView.prototype.render = function() {
@@ -486,7 +488,8 @@
         if (this.current) {
           return this.current;
         } else {
-          return $(this.el).find('select option:selected').val();
+          console.log($('#supplier-selector option:selected').val());
+          return $('#supplier-selector').val();
         }
       };
 
@@ -521,15 +524,17 @@
       MenuView.prototype.el = '#main';
 
       MenuView.prototype.initialize = function() {
-        var suppliers;
+        var _this = this;
         this.collection = new DishList();
-        this.collection.fetch();
         this.render();
-        suppliers = new SuppliersSelectorView({
+        ViewsLiteral.supplierSelector = new SuppliersSelectorView({
           el: 'div.suppliers'
         });
-        this.collection.on('add', this.renderDishes, this);
-        return this.collection.on('reset', this.renderDishes, this);
+        ViewsLiteral.supplierSelector.collection.on('reset', function() {
+          _this.collection.on('add', _this.renderDishes, _this);
+          return _this.collection.on('reset', _this.renderDishes, _this);
+        });
+        return this.collection.fetch();
       };
 
       MenuView.prototype.events = function() {
@@ -555,15 +560,20 @@
       };
 
       MenuView.prototype.renderDishes = function() {
-        var accessories, food;
+        var accessories, food,
+          _this = this;
         food = new DishesMenuView({
           collection: this.collection
+        });
+        food.on('updateCollection', function() {
+          return $('#menu-dishes').html(food.render().el);
         });
         accessories = new AccessorisMenuView({
           collection: this.collection
         });
-        $('#menu-dishes').html(food.render().el);
-        return $('#menu-accessories').html(accessories.render().el);
+        return accessories.on('updateCollection', function() {
+          return $('#menu-accessories').html(accessories.render().el);
+        });
       };
 
       MenuView.prototype.inlineEdit = function(e) {
@@ -632,10 +642,22 @@
         return DishesMenuView.__super__.constructor.apply(this, arguments);
       }
 
+      DishesMenuView.prototype.initialize = function() {
+        var _this = this;
+        this.dishCategory = new DishCategoryList();
+        console.log(ViewsLiteral.supplierSelector.getCurrentId());
+        this.dishCategory.url = '/dish_category/' + ViewsLiteral.supplierSelector.getCurrentId();
+        this.dishCategory.on('reset', function() {
+          return _this.trigger('updateCollection');
+        });
+        return this.dishCategory.fetch();
+      };
+
       DishesMenuView.prototype.render = function() {
         $(this.$el).html(_.template($('#menu-items-template').html(), {
           dishes: this.collection.models,
-          mode: 'food'
+          mode: 'food',
+          dishCategory: this.dishCategory
         }));
         return this;
       };
@@ -651,10 +673,21 @@
         return AccessorisMenuView.__super__.constructor.apply(this, arguments);
       }
 
+      AccessorisMenuView.prototype.initialize = function() {
+        var _this = this;
+        this.dishCategory = new DishCategoryList();
+        this.dishCategory.url = '/dish_category/' + ViewsLiteral.supplierSelector.getCurrentId();
+        this.dishCategory.on('reset', function() {
+          return _this.trigger('updateCollection');
+        });
+        return this.dishCategory.fetch();
+      };
+
       AccessorisMenuView.prototype.render = function() {
         $(this.$el).html(_.template($('#menu-items-template').html(), {
           dishes: this.collection.models,
-          mode: 'accessories'
+          mode: 'accessories',
+          dishCategory: this.dishCategory
         }));
         return this;
       };
@@ -674,13 +707,18 @@
 
       MenuDishFormView.prototype.initialize = function() {
         var _this = this;
-        this.render();
-        $('#dish-form').modal({
-          backdrop: false
+        this.dishCategory = new DishCategoryList();
+        this.dishCategory.url = '/dish_category/' + ViewsLiteral.supplierSelector.getCurrentId();
+        this.dishCategory.on('reset', function() {
+          _this.render();
+          $('#dish-form').modal({
+            backdrop: false
+          });
+          return $('#dish-form').on('hidden', function() {
+            return _this.hide();
+          });
         });
-        return $('#dish-form').on('hidden', function() {
-          return _this.hide();
-        });
+        return this.dishCategory.fetch();
       };
 
       MenuDishFormView.prototype.events = function() {
@@ -690,7 +728,9 @@
       };
 
       MenuDishFormView.prototype.render = function() {
-        return $(this.el).append(_.template($('#dish-form-template').html()));
+        return $(this.el).append(_.template($('#dish-form-template').html(), {
+          dishCategory: this.dishCategory.models
+        }));
       };
 
       MenuDishFormView.prototype.saveForm = function(e) {
@@ -728,9 +768,9 @@
       WeekOrderView.prototype.el = '#main';
 
       WeekOrderView.prototype.initialize = function() {
-        var suppliers, weekSwitcher;
+        var weekSwitcher;
         this.render();
-        suppliers = new SuppliersSelectorView({
+        ViewsLiteral.supplierSelector = new SuppliersSelectorView({
           el: 'div.suppliers'
         });
         weekSwitcher = new WeekSwitcherView;
@@ -881,7 +921,7 @@
             currentDay: this.attributes.currentDay
           }
         });
-        return ViewsLiteral.fullOrderPopup.render();
+        return ViewsLiteral.fullOrderPopup.updateCollections();
       };
 
       return DayOrderView;
@@ -897,17 +937,14 @@
 
       FullOrderView.prototype.el = '#full-order-popup';
 
-      FullOrderView.prototype.dishCategories = {
-        1: 'Супы',
-        2: 'Мясо',
-        3: 'Гарниры',
-        4: 'Салаты',
-        5: 'Блины',
-        6: 'Другое',
-        7: 'Контейнеры'
-      };
-
       FullOrderView.prototype.initialize = function() {};
+
+      FullOrderView.prototype.updateCollections = function() {
+        this.dishCategories = new DishCategoryList();
+        this.dishCategories.url = '/dish_category/' + ViewsLiteral.supplierSelector.getCurrentId();
+        this.dishCategories.on('reset', this.render(), this);
+        return this.dishCategories.fetch();
+      };
 
       FullOrderView.prototype.events = function() {
         return {
@@ -1084,16 +1121,6 @@
 
       OrderView.prototype.copyDate = void 0;
 
-      OrderView.prototype.dishCategories = {
-        1: 'Супы',
-        2: 'Мясо',
-        3: 'Гарниры',
-        4: 'Салаты',
-        5: 'Блины',
-        6: 'Другое',
-        7: 'Контейнеры'
-      };
-
       OrderView.prototype.initialize = function() {
         var _this = this;
         if (_.isEmpty(ViewsLiteral.userSelector.userId)) {
@@ -1105,19 +1132,25 @@
           return;
         }
         this.users = new UserList();
-        this.users.fetch();
-        this.users.on('reset', function(usersList) {
-          _this.userOrder = new UserOrderList();
-          if (_this.attributes.userId && _this.model) {
-            _this.userOrder.url = '/user_orders/' + _this.attributes.userId + '/' + _this.model.attributes.id;
-            _this.userOrder.fetch();
-          }
-          _this.dishes = new DishList();
-          _this.dishes.fetch();
-          _this.dishes.on('reset', _this.render, _this);
-          _this.userOrder.on('reset', _this.render, _this);
-          return _this.on('updateMenu', _this.initialize, _this);
+        this.dishCategories = new DishCategoryList();
+        this.dishCategories.url = '/dish_category/' + ViewsLiteral.supplierSelector.getCurrentId();
+        this.dishCategories.on('reset', function() {
+          _this.users.on('reset', function(usersList) {
+            _this.userOrder = new UserOrderList();
+            _this.dishes = new DishList();
+            console.log('333');
+            _this.dishes.on('reset', _this.render, _this);
+            _this.userOrder.on('reset', _this.render, _this);
+            _this.dishes.fetch();
+            if (_this.attributes.userId && _this.model) {
+              _this.userOrder.url = '/user_orders/' + _this.attributes.userId + '/' + _this.model.attributes.id;
+              _this.userOrder.fetch();
+            }
+            return _this.on('updateMenu', _this.initialize, _this);
+          });
+          return _this.users.fetch();
         });
+        this.dishCategories.fetch();
         return routes.navigate("!/user-order");
       };
 
@@ -1362,7 +1395,7 @@
 
       EditSupplierView.prototype.events = function() {
         return {
-          'click button': 'save'
+          'click .save-supplier': 'save'
         };
       };
 
@@ -1388,7 +1421,7 @@
       EditSupplierView.prototype.save = function() {
         var formData;
         formData = {};
-        _.each($(this.el).find('input, select, textarea'), function(item) {
+        _.each($(this.el).find('.control-group').find('input, select, textarea'), function(item) {
           return formData[$(item).attr('name')] = $(item).val();
         });
         if (!this.model) {
@@ -1454,18 +1487,47 @@
         return this.categories.on('reset', this.render, this);
       };
 
-      DishCategoriesView.prototype.events = function() {};
+      DishCategoriesView.prototype.events = function() {
+        return {
+          'click .save-category': 'add'
+        };
+      };
+
+      DishCategoriesView.prototype.add = function(e) {
+        var formData;
+        e.preventDefault();
+        formData = {};
+        _.each($(this.el).find('.form input'), function(item) {
+          return formData[$(item).attr('name')] = $(item).val();
+        });
+        formData['supplier'] = this.attributes.supplier.id;
+        if (this.editModel) {
+          this.editModel.on('change', this.updateList, this);
+          this.editModel.url = '/dish_category/' + this.editModel.id;
+          this.editModel.save(formData);
+          return this.editModel = null;
+        } else {
+          this.categories.url = '/dish_category';
+          this.categories.on('add', this.updateList, this);
+          return this.categories.create(formData, {
+            wait: true
+          });
+        }
+      };
 
       DishCategoriesView.prototype.render = function() {
+        var _this = this;
+        $(this.el).html(_.template($('#dish-categories-template').html()));
         if (this.categories.length) {
-          return _.each(this.categories.models, function(model) {
+          _.each(this.categories.models, function(model) {
             var categoryView;
             categoryView = new DishCategoryView({
               model: model
             });
-            return $(this.el).find('ul').append(categoryView.render().el);
+            return $(_this.el).find('ul').append(categoryView.render().el);
           });
         }
+        return this;
       };
 
       return DishCategoriesView;
@@ -1488,12 +1550,33 @@
         };
       };
 
+      DishCategoryView.prototype.render = function() {
+        $(this.$el).html(_.template($('#dish-category-item-template').html(), this.model.toJSON()));
+        return this;
+      };
+
       DishCategoryView.prototype.edit = function(e) {
-        return e.preventDefault();
+        var _this = this;
+        e.preventDefault();
+        _.each($('#dish-categories .form input'), function(item) {
+          if ($(item).attr('type') === 'checkbox') {
+            if (_this.model.attributes[$(item).attr('name')]) {
+              return $(item).attr('checked', 'checked');
+            } else {
+              return $(item).removeAttr('checked');
+            }
+          } else {
+            return $(item).val(_this.model.attributes[$(item).attr('name')]);
+          }
+        });
+        return ViewsLiteral.dishCategory.editModel = this.model;
       };
 
       DishCategoryView.prototype["delete"] = function(e) {
-        return e.preventDefault();
+        e.preventDefault();
+        this.model.url = '/dish_category/' + this.model.id;
+        this.model.destroy();
+        return this.remove();
       };
 
       return DishCategoryView;

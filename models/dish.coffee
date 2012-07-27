@@ -11,6 +11,12 @@ DishSchema = new Schema
 		type: String
 	price:
 		type: String
+	includeInOrder:
+		type: Boolean
+		default: true
+	includeInPayment:
+		type: Boolean
+		default: true
 	createdAt:
 		type: Date
 		default: Date.now

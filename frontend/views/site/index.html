@@ -111,10 +111,6 @@
 	<ul></ul>
 	<div class="form">
 		<input type="text" name="name"/>
-		<label>
-		Включать в заказ
-		<input type="checkbox" name="includeInOrder"/>
-		</label>
 		<button class="btn save-category" type="submit">Добавить</button>
 	</div>
 </script>
@@ -192,6 +188,20 @@
 							<input name="price"/>
 						</div>
 					</div>
+
+					<div class="control-group">
+						<label for="includeInOrder" class="control-label">Включать в заказ</label>
+						<div class="controls">
+							<input id="includeInOrder" name="includeInOrder" type="checkbox" checked/>
+						</div>
+					</div>
+
+					<div class="control-group">
+						<label for="includeInPayment" class="control-label">Включать в стоимость</label>
+						<div class="controls">
+							<input id="includeInPayment" name="includeInPayment" type="checkbox" checked/>
+						</div>
+					</div>
 				</div>
 			</div>
 		</form>
@@ -204,9 +214,9 @@
 
 <script type="text/template" id="menu-items-template">
 	<@ _.each(dishes, function(dish, index) { @>
-		<@ if ((!dishCategory.get(dish.attributes.category) || (mode == 'accessories' && dishCategory.get(dish.attributes.category).attributes.includeInOrder == false)) || (!dishCategory.get(dish.attributes.category) || (mode == 'food' && dishCategory.get(dish.attributes.category).attributes.includeInOrder == true))) { @>
+		<@ if ((mode == 'accessories' && (!dish.attributes.includeInOrder || !dish.attributes.includeInPayment)) || mode == 'food') { @>
 			<div class="row">
-				<input type="checkbox"/>
+				<input type="checkbox" class="dish"/>
 				<div class="dish-info" attributeId="<@=dish.attributes.id@>">
 					<div class="view">
 						<@=dish.attributes.name@>
@@ -220,6 +230,17 @@
 							<@ })@>
 						</select>
 						<span><input type="text" class="price" name="price"/></span>
+
+						<div class="params">
+							<label>
+								<input type="checkbox" name="includeInOrder" <@=dish.attributes.includeInOrder ? 'checked' : ''@>/>
+								Показывать в заказе
+							</label>
+							<label>
+								<input type="checkbox" name="includeInPayment" <@=dish.attributes.includeInPayment ? 'checked' : ''@>/>
+								Учитывать в стоимости
+							</label>
+						</div>
 					</div>
 				</div>
 			</div>
@@ -278,11 +299,7 @@
 		<@ if (dishesByCategory) { @>
 			<div class="order-date"><h2>Заказ на <@=currentDay.format('dddd, DD MMMM')@></h2></div>
 
-			<!--<select class="user">-->
-				<!--<@ _.each(users.models, function(user) {@>-->
-					<!--<option value="<@=user.attributes.id@>"><@=user.attributes.name@></option>-->
-				<!--<@ }) @>-->
-			<!--</select>-->
+
 			<@ _.each(dishesByCategory, function(dishes, categoryId) { @>
 				<div class="category-dish-name">
 					<@=!dishCategories.get(categoryId) ? 'Не известно' : dishCategories.get(categoryId).attributes.name@>
@@ -323,10 +340,7 @@
 				<@ if ((!model || (model && !model.attributes.sentAt)) && (!orderOwnerId || (orderOwnerId && orderOwnerId == currentUser))) {@>
 					<a href="#" class="save btn btn-success">Заказать</a>
 				<@ } @>
-
-
 			</div>
-
 		<@ } else { @>
 			<h2>Меню пустое</h2>
 		<@ } @>
@@ -344,14 +358,14 @@
 			<div class="modal-body">
 				<@ _.each(fullOrderDishes, function(dishes, categoryId) { @>
 					<div class="category-dish-name">
-						<@=dishCategories.get(categoryId).attributes.name@>
+						<@=!dishCategories.get(categoryId) ? 'Не известно' : dishCategories.get(categoryId).attributes.name@>
 					</div>
 					<table class="">
 						<@ _.each(dishes, function(dish, dishId) { @>
 						<tr>
-							<td class="dish-name span4"><@=dish.name@></td>
+							<td class="dish-name span4"><@=dish.name@> <@= dish.notes.length ? '(' + dish.notes + ')' : ''@></td>
 							<td class="span1"><@=dish.quantity@></td>
-							<td><input quantity="<@=dish.quantity@>" dishId="<@=dish.id@>" name="price" value="<@= dish.price @>"/></td>
+							<td><input includeInPayment="<@=dish.includeInPayment ? 1 : 0@>" quantity="<@=dish.quantity@>" dishId="<@=dish.id@>" name="price" value="<@= dish.price @>"/></td>
 						</tr>
 						<@ }) @>
 					</table>
@@ -417,8 +431,8 @@
 </script>
 
 <script type="text/template" id="unpaid-users-template">
-	<div class="user">
-		<@ _.each(unpaid, function(user, userId) { @>
+	<@ _.each(unpaid, function(user, userId) { @>
+		<div class="user">
 			<div class="name"><@= users.get(userId).attributes.name@> <div class="total"><span class="paid">0</span> / <span class="total"><@=user.total@></span></div></div>
 
 			<div class="days">
@@ -434,8 +448,9 @@
 					</div>
 				<@ }) @>
 			</div>
-		<@ }) @>
-	</div>
+		</div>
+	<@ }) @>
+
 	<hr/>
 	<button class="save btn btn-success">Сохранить</button>
 </script>

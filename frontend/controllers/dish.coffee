@@ -12,6 +12,8 @@ class DishController
 			name: req.body.name
 			category: req.body.category
 			price: req.body.price
+			includeInOrder: req.body.includeInOrder
+			includeInPayment: req.body.includeInPayment
 		}
 		model.save (err) ->
 			if !err
@@ -26,6 +28,8 @@ class DishController
 			model.name = req.body.name
 			model.category = req.body.category
 			model.price = req.body.price
+			model.includeInOrder = req.body.includeInOrder
+			model.includeInPayment = req.body.includeInPayment
 			model.save (err) ->
 				if !err
 					console.log 'dish updated'

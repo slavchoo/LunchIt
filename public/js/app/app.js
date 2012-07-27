@@ -488,7 +488,6 @@
         if (this.current) {
           return this.current;
         } else {
-          console.log($('#supplier-selector option:selected').val());
           return $('#supplier-selector').val();
         }
       };
@@ -543,7 +542,7 @@
           'click #remove-dish': 'removeDish',
           'dblclick .dish-info .view': 'inlineEdit',
           'blur .dish-info input': 'saveInlineEdit',
-          'change input[type="checkbox"]': 'selectDish'
+          'change input[type="checkbox"].dish': 'selectDish'
         };
       };
 
@@ -602,9 +601,13 @@
           model = this.collection.get(modelId);
           formData = {};
           _.each(container.find('.edit input, .edit select'), function(item) {
-            var key;
-            key = $(item).attr('name');
-            return formData[key] = $(item).val();
+            var $item;
+            $item = $(item);
+            if ($item.attr('type') === 'checkbox') {
+              return formData[$item.attr('name')] = $item.is(':checked');
+            } else {
+              return formData[$item.attr('name')] = $item.val();
+            }
           });
           model.save(formData);
           return this.collection.trigger('reset');
@@ -645,7 +648,6 @@
       DishesMenuView.prototype.initialize = function() {
         var _this = this;
         this.dishCategory = new DishCategoryList();
-        console.log(ViewsLiteral.supplierSelector.getCurrentId());
         this.dishCategory.url = '/dish_category/' + ViewsLiteral.supplierSelector.getCurrentId();
         this.dishCategory.on('reset', function() {
           return _this.trigger('updateCollection');
@@ -738,7 +740,13 @@
         e.preventDefault();
         formData = {};
         _.each($('#dish-form').find('input, select'), function(item) {
-          return formData[$(item).attr('name')] = $(item).val();
+          var $item;
+          $item = $(item);
+          if ($item.attr('type') === 'checkbox') {
+            return formData[$item.attr('name')] = $item.is(':checked');
+          } else {
+            return formData[$item.attr('name')] = $item.val();
+          }
         });
         this.collection.create(formData);
         return $('#dish-form').modal('hide');
@@ -863,8 +871,10 @@
             }
             userOrders[item.attributes.user._id].user = item.attributes.user;
             userOrders[item.attributes.user._id].order.push(item.attributes);
-            userOrders[item.attributes.user._id].total += item.attributes.price * item.attributes.quantity;
-            return dayTotal += item.attributes.price * item.attributes.quantity;
+            if (item.attributes.dish.includeInPayment) {
+              userOrders[item.attributes.user._id].total += item.attributes.price * item.attributes.quantity;
+              return dayTotal += item.attributes.price * item.attributes.quantity;
+            }
           });
         }
         $(this.$el).html(_.template($('#day-order-template').html(), {
@@ -942,8 +952,8 @@
       FullOrderView.prototype.updateCollections = function() {
         this.dishCategories = new DishCategoryList();
         this.dishCategories.url = '/dish_category/' + ViewsLiteral.supplierSelector.getCurrentId();
-        this.dishCategories.on('reset', this.render(), this);
-        return this.dishCategories.fetch();
+        this.dishCategories.fetch();
+        return this.dishCategories.on('reset', this.render, this);
       };
 
       FullOrderView.prototype.events = function() {
@@ -960,6 +970,7 @@
         fullOrderDishes = {};
         total = 0;
         _.each(this.collection.models, function(dish) {
+          var notes;
           if (!fullOrderDishes[dish.attributes.dish.category]) {
             fullOrderDishes[dish.attributes.dish.category] = {};
           }
@@ -970,10 +981,21 @@
             fullOrderDishes[dish.attributes.dish.category][dish.attributes.dish._id].quantity = 0;
           }
           fullOrderDishes[dish.attributes.dish.category][dish.attributes.dish._id].quantity += dish.attributes.quantity;
+          fullOrderDishes[dish.attributes.dish.category][dish.attributes.dish._id].includeInPayment = dish.attributes.dish.includeInPayment;
           fullOrderDishes[dish.attributes.dish.category][dish.attributes.dish._id].name = dish.attributes.dish.name;
           fullOrderDishes[dish.attributes.dish.category][dish.attributes.dish._id].price = dish.attributes.price;
           fullOrderDishes[dish.attributes.dish.category][dish.attributes.dish._id].id = dish.attributes.dish._id;
-          return total += dish.attributes.quantity * dish.attributes.price;
+          notes = [];
+          if (!dish.attributes.dish.includeInPayment) {
+            notes.push('не включено в стоимость');
+          }
+          if (!dish.attributes.dish.includeInOrder) {
+            notes.push('не включено в заказ');
+          }
+          fullOrderDishes[dish.attributes.dish.category][dish.attributes.dish._id].notes = notes.join(' и ');
+          if (dish.attributes.dish.includeInPayment) {
+            return total += dish.attributes.quantity * dish.attributes.price;
+          }
         });
         $(this.el).html(_.template($('#full-order-template').html(), {
           dishCategories: this.dishCategories,
@@ -1011,7 +1033,9 @@
         var total;
         total = 0;
         _.each($(this.el).find('input[name="price"]'), function(item) {
-          return total += $(item).attr('quantity') * $(item).val();
+          var $item;
+          $item = $(item);
+          return total += $item.attr('includeInPayment') === '1' ? $(item).attr('quantity') * $(item).val() : 0;
         });
         return $(this.el).find('div.total .sum').text(total);
       };
@@ -1131,24 +1155,22 @@
           });
           return;
         }
-        this.users = new UserList();
         this.dishCategories = new DishCategoryList();
         this.dishCategories.url = '/dish_category/' + ViewsLiteral.supplierSelector.getCurrentId();
         this.dishCategories.on('reset', function() {
-          _this.users.on('reset', function(usersList) {
-            _this.userOrder = new UserOrderList();
-            _this.dishes = new DishList();
-            console.log('333');
-            _this.dishes.on('reset', _this.render, _this);
-            _this.userOrder.on('reset', _this.render, _this);
-            _this.dishes.fetch();
-            if (_this.attributes.userId && _this.model) {
-              _this.userOrder.url = '/user_orders/' + _this.attributes.userId + '/' + _this.model.attributes.id;
-              _this.userOrder.fetch();
-            }
-            return _this.on('updateMenu', _this.initialize, _this);
+          _this.userOrder = new UserOrderList();
+          _this.dishes = new DishList();
+          _this.dishes.on('reset', function() {
+            return _this.userOrder.on('reset', _this.render, _this);
           });
-          return _this.users.fetch();
+          _this.dishes.fetch();
+          if (_this.attributes.userId && _this.model) {
+            _this.userOrder.url = '/user_orders/' + _this.attributes.userId + '/' + _this.model.attributes.id;
+            _this.userOrder.fetch();
+          } else {
+            _this.dishes.on('reset', _this.render, _this);
+          }
+          return _this.on('updateMenu', _this.initialize, _this);
         });
         this.dishCategories.fetch();
         return routes.navigate("!/user-order");
@@ -1275,7 +1297,6 @@
           dishesByCategory: dishesByCategory,
           currentDay: this.attributes.currentDay,
           dishCategories: this.dishCategories,
-          users: this.users,
           userOrder: userOrder,
           orderOwnerId: this.attributes.userId,
           currentUser: ViewsLiteral.userSelector.userId
@@ -1620,7 +1641,6 @@
       };
 
       OrderButtonView.prototype.loadPopup = function() {
-        console.log('load popup');
         ViewsLiteral.previewEmail = new PreviewEmailView({
           model: this.lastOrder
         });
@@ -1639,7 +1659,6 @@
             type: 'POST',
             dataType: 'text',
             success: function(response) {
-              console.log('update status');
               return _this.updateOrderStatus();
             }
           });
@@ -1747,7 +1766,6 @@
         this.orders = new OrderList();
         this.unpaid = new UserDayOrderList();
         this.users = new UserList();
-        this.users.fetch();
         this.users.on('reset', function(users) {
           _this.orders.getOrderByDate(moment());
           return _this.orders.on('reset', function(result) {
@@ -1756,6 +1774,7 @@
             return _this.updateUnpaid();
           });
         });
+        this.users.fetch();
         return this.currentDate = moment();
       };
 
@@ -1787,22 +1806,25 @@
         }
       };
 
-      BillingView.prototype.recalculateTotal = function() {
-        var checkboxes, total;
+      BillingView.prototype.recalculateTotal = function(e) {
+        var checkboxes,
+          _this = this;
         checkboxes = $('#unpaid-users input[type="checkbox"]');
-        total = 0;
-        _.each(checkboxes, function(item) {
-          if ($(item).is(':checked')) {
-            return total += parseInt($(item).attr('total'));
-          }
+        return _.each($('#unpaid-users .user'), function(user) {
+          var total;
+          total = 0;
+          _.each($(user).find('input[type="checkbox"]'), function(item) {
+            if ($(item).is(':checked')) {
+              return total += parseInt($(item).attr('total'));
+            }
+          });
+          return $(user).find('.name .total .paid').text(total);
         });
-        return checkboxes.parents('.user').find('.name .total .paid').text(total);
       };
 
       BillingView.prototype.updateUnpaid = function() {
-        console.log(this.order);
-        this.unpaid.getUnpaid($('#payer .payer-name select').val());
-        return this.unpaid.on('reset', this.renderUsers, this);
+        this.unpaid.on('reset', this.renderUsers, this);
+        return this.unpaid.getUnpaid($('#payer .payer-name select').val());
       };
 
       BillingView.prototype.savePayment = function(e) {

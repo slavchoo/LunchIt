@@ -4,7 +4,6 @@ mailer = require "mailer"
 
 class OrderController
 	list: (req, res) ->
-
 		Order.find()
 			.where('createdAt').gte(moment(req.params.from).unix()).lte(moment(req.params.to).unix())
 			.populate('supplier')
@@ -101,7 +100,8 @@ class OrderController
 						orderArray = []
 						number += 1
 						_.each userOrder, (order) ->
-							orderArray.push(order.dish.name + (if order.quantity > 1  then ' (' + order.quantity + ' порции)' else ''))
+							if order.dish.includeInOrder
+								orderArray.push(order.dish.name + (if order.quantity > 1  then ' (' + order.quantity + ' порции)' else ''))
 						orderText += number + '. ' + orderArray.join(' + ') + '\n'
 
 					if todayOrder.supplier.template

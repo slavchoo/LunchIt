@@ -9,23 +9,23 @@ class UserDayOrderController
 
 
 #		if req.params.user
-			UserDayOrder
-				.find({is_paid: false})
-				.populate('user')
-				.populate('order', null, orderCriteria)
-				.exec (err, models) ->
-					async.reduce(models, [], (userOrders, userDayOrder, onUserDayOrder) ->
-						if (_.isEmpty(userDayOrder.order))
-							onUserDayOrder null, userOrders
-							return
+		UserDayOrder
+			.find({is_paid: false})
+			.populate('user')
+			.populate('order', null, orderCriteria)
+			.exec (err, models) ->
+				async.reduce(models, [], (userOrders, userDayOrder, onUserDayOrder) ->
+					if (_.isEmpty(userDayOrder.order))
+						onUserDayOrder null, userOrders
+						return
 
-						userDayOrder.order.getTotalUserOrder userDayOrder.user._id, (result) =>
-							userDayOrder.order.total = result
-							userOrders.push userDayOrder
-							onUserDayOrder null, userOrders
-					, (err, userOrders) ->
-						res.send userOrders
-					)
+					userDayOrder.order.getTotalUserOrder userDayOrder.user._id, (result) =>
+						userDayOrder.order.total = result
+						userOrders.push userDayOrder
+						onUserDayOrder null, userOrders
+				, (err, userOrders) ->
+					res.send userOrders
+				)
 #		else
 #			UserDayOrder.find({is_paid: false}).populate('user').populate('order').exec (err, models) ->
 #				if !err

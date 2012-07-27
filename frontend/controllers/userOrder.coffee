@@ -43,9 +43,12 @@ class UserOrderController
 			, (models, next) ->
 				async.forEach models, (model) ->
 					model.remove()
-				, next
+				, next()
 			, (next) ->
+				console.log 'order point'
+				console.log req.body
 				async.forEach _.toArray(req.body), (item, onUserOrderSave) ->
+					console.log 'each loop'
 					Dish.findById(item.dish).exec (err, doc) =>
 						model = new UserOrder {
 							dish: item.dish

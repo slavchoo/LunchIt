@@ -302,7 +302,6 @@ $ ->
 			if @current
 				@current
 			else
-				console.log $('#supplier-selector option:selected').val()
 				$('#supplier-selector').val()
 
 		getCurrent: ->
@@ -339,7 +338,7 @@ $ ->
 			'click #remove-dish': 'removeDish'
 			'dblclick .dish-info .view': 'inlineEdit'
 			'blur .dish-info input': 'saveInlineEdit'
-			'change input[type="checkbox"]': 'selectDish'
+			'change input[type="checkbox"].dish': 'selectDish'
 
 		render: ->
 			$(@el).html(_.template $('#menu-template').html())
@@ -384,8 +383,11 @@ $ ->
 				model = @collection.get(modelId)
 				formData = {}
 				_.each container.find('.edit input, .edit select'), (item) ->
-					key = $(item).attr('name')
-					formData[key] = $(item).val()
+					$item = $(item)
+					if $item.attr('type') == 'checkbox'
+						formData[$item.attr('name')] = $item.is(':checked')
+					else
+						formData[$item.attr('name')] = $item.val()
 
 				model.save formData
 				@collection.trigger('reset')
@@ -408,7 +410,6 @@ $ ->
 	class DishesMenuView extends Backbone.View
 		initialize: ->
 			@dishCategory = new DishCategoryList()
-			console.log ViewsLiteral.supplierSelector.getCurrentId()
 			@dishCategory.url = '/dish_category/' + ViewsLiteral.supplierSelector.getCurrentId()
 			@dishCategory.on 'reset', ()=>
 				@.trigger 'updateCollection'
@@ -457,7 +458,11 @@ $ ->
 			#console.log $('#dish-form').find('input, select')
 			formData = {}
 			_.each $('#dish-form').find('input, select'), (item) ->
-				formData[$(item).attr('name')] = $(item).val()
+				$item = $(item)
+				if $item.attr('type') == 'checkbox'
+					formData[$item.attr('name')] = $item.is(':checked')
+				else
+					formData[$item.attr('name')] = $item.val()
 
 			@collection.create(formData)
 			$('#dish-form').modal('hide')
@@ -530,8 +535,9 @@ $ ->
 					userOrders[item.attributes.user._id] = {user:{}, order: [], total: 0} if !userOrders[item.attributes.user._id]
 					userOrders[item.attributes.user._id].user = item.attributes.user
 					userOrders[item.attributes.user._id].order.push(item.attributes)
-					userOrders[item.attributes.user._id].total += item.attributes.price * item.attributes.quantity
-					dayTotal += item.attributes.price * item.attributes.quantity
+					if item.attributes.dish.includeInPayment
+						userOrders[item.attributes.user._id].total += item.attributes.price * item.attributes.quantity
+						dayTotal += item.attributes.price * item.attributes.quantity
 
 			$(@$el).html _.template $('#day-order-template').html(), {currentDay: @attributes.currentDay, order: @model, userOrders: userOrders, dayTotal: dayTotal}
 			@
@@ -568,8 +574,9 @@ $ ->
 		updateCollections: ->
 			@dishCategories = new DishCategoryList()
 			@dishCategories.url = '/dish_category/' + ViewsLiteral.supplierSelector.getCurrentId()
-			@dishCategories.on 'reset', @render(), @
+
 			@dishCategories.fetch()
+			@dishCategories.on 'reset', @render, @
 
 		events: ->
 			'click .save': 'save'
@@ -585,11 +592,20 @@ $ ->
 				fullOrderDishes[dish.attributes.dish.category][dish.attributes.dish._id].quantity = 0 if !fullOrderDishes[dish.attributes.dish.category][dish.attributes.dish._id].quantity
 
 				fullOrderDishes[dish.attributes.dish.category][dish.attributes.dish._id].quantity += dish.attributes.quantity
+				fullOrderDishes[dish.attributes.dish.category][dish.attributes.dish._id].includeInPayment = dish.attributes.dish.includeInPayment
 				fullOrderDishes[dish.attributes.dish.category][dish.attributes.dish._id].name = dish.attributes.dish.name
 				fullOrderDishes[dish.attributes.dish.category][dish.attributes.dish._id].price = dish.attributes.price
 				fullOrderDishes[dish.attributes.dish.category][dish.attributes.dish._id].id = dish.attributes.dish._id
+				notes = []
+				if (!dish.attributes.dish.includeInPayment)
+					notes.push('не включено в стоимость')
+				if (!dish.attributes.dish.includeInOrder)
+					notes.push('не включено в заказ')
+				fullOrderDishes[dish.attributes.dish.category][dish.attributes.dish._id].notes = notes.join(' и ')
 
-				total += dish.attributes.quantity * dish.attributes.price
+
+				if dish.attributes.dish.includeInPayment
+					total += dish.attributes.quantity * dish.attributes.price
 
 			$(@el).html _.template $('#full-order-template').html(), {dishCategories: @dishCategories, fullOrderDishes: fullOrderDishes, date: @attributes.currentDay.format('DD MMMM'), total: total}
 			$('#full-order-form').modal({backdrop: false})
@@ -615,11 +631,9 @@ $ ->
 		calculateTotal: (e)->
 			total = 0
 			_.each $(@el).find('input[name="price"]'), (item) ->
-				total += $(item).attr('quantity') * $(item).val()
-
+				$item = $(item)
+				total += if $item.attr('includeInPayment') == '1' then $(item).attr('quantity') * $(item).val() else 0
 			$(@el).find('div.total .sum').text(total)
-
-
 
 	class WeekSwitcherView extends Backbone.View
 		el: '#week-switcher'
@@ -689,26 +703,24 @@ $ ->
 				routes.navigate("!/week-order", {trigger: true, replace: true});
 				return
 
-			@users = new UserList()
-
 			@dishCategories = new DishCategoryList()
 			@dishCategories.url = '/dish_category/' + ViewsLiteral.supplierSelector.getCurrentId()
 
 			@dishCategories.on 'reset', () =>
-				@users.on 'reset', (usersList) =>
-					@userOrder = new UserOrderList()
-					@dishes = new DishList()
-					console.log '333'
-					@dishes.on 'reset', @render, @
+				@userOrder = new UserOrderList()
+				@dishes = new DishList()
+				@dishes.on 'reset', () =>
 					@userOrder.on 'reset', @render, @
 
-					@dishes.fetch()
-					if @attributes.userId && @model
-						@userOrder.url = '/user_orders/' + @attributes.userId + '/' + @model.attributes.id
-						@userOrder.fetch()
-					@.on 'updateMenu', @initialize, @
+				@dishes.fetch()
+				if @attributes.userId && @model
+					@userOrder.url = '/user_orders/' + @attributes.userId + '/' + @model.attributes.id
+					@userOrder.fetch()
+				else
+					@dishes.on 'reset', @render, @
+				@.on 'updateMenu', @initialize, @
 
-				@users.fetch()
+
 			@dishCategories.fetch()
 
 			routes.navigate("!/user-order");
@@ -810,7 +822,6 @@ $ ->
 				dishesByCategory: dishesByCategory,
 				currentDay: @attributes.currentDay,
 				dishCategories: @dishCategories,
-				users: @users,
 				userOrder: userOrder,
 				orderOwnerId: @attributes.userId
 				currentUser: ViewsLiteral.userSelector.userId
@@ -1014,7 +1025,6 @@ $ ->
 			@updateOrderStatus()
 
 		loadPopup: ->
-			console.log 'load popup'
 			ViewsLiteral.previewEmail = new PreviewEmailView({model: @lastOrder})
 			ViewsLiteral.previewEmail.on 'sent', @saveOrder, @
 			@.off 'saveOrder'
@@ -1028,7 +1038,6 @@ $ ->
 					type: 'POST'
 					dataType: 'text'
 					success: (response) =>
-						console.log 'update status'
 						@updateOrderStatus()
 			@.off 'saveOrder'
 
@@ -1095,7 +1104,7 @@ $ ->
 			@unpaid = new UserDayOrderList()
 
 			@users = new UserList()
-			@users.fetch()
+
 
 			@users.on 'reset', (users) =>
 				@orders.getOrderByDate(moment())
@@ -1103,6 +1112,8 @@ $ ->
 					@order = @orders.models[0] #@orders.models[0] mongoose return one field, but fetch() - many
 					@renderPayer()
 					@updateUnpaid()
+
+			@users.fetch()
 
 			@currentDate = moment()
 
@@ -1125,18 +1136,20 @@ $ ->
 				@order.save({payer: userId})
 				@updateUnpaid()
 
-		recalculateTotal: ->
+		recalculateTotal: (e) ->
 			checkboxes = $('#unpaid-users input[type="checkbox"]')
-			total = 0
-			_.each checkboxes, (item) ->
-				if $(item).is(':checked')
-					total += parseInt($(item).attr('total'))
-			checkboxes.parents('.user').find('.name .total .paid').text(total)
+
+			_.each $('#unpaid-users .user'), (user) =>
+				total = 0
+				_.each $(user).find('input[type="checkbox"]'), (item) ->
+					if $(item).is(':checked')
+						total += parseInt($(item).attr('total'))
+				$(user).find('.name .total .paid').text(total)
 
 		updateUnpaid: ->
-			console.log @order
-			@unpaid.getUnpaid($('#payer .payer-name select').val())
 			@unpaid.on 'reset', @renderUsers, @
+			@unpaid.getUnpaid($('#payer .payer-name select').val())
+
 
 		savePayment: (e)->
 			e.preventDefault()

@@ -302,7 +302,7 @@ $ ->
 			if @current
 				@current
 			else
-				$('#supplier-selector').val()
+				@current = $('#supplier-selector').val()
 
 		getCurrent: ->
 			@collection.get @getCurrentId()
@@ -756,7 +756,7 @@ $ ->
 				copyData[$(item).attr('dishId')] = $(item).val()
 
 			@.undelegateEvents()
-			new OrderView({model: @potentialOrder, attributes:{currentDay: @copyDate.subtract('days', 1), copyData: copyData, userId: $(@el).find('select.user').val()}})
+			new OrderView({model: @potentialOrder, attributes:{currentDay: @copyDate.subtract('days', 1), copyData: copyData, userId: ViewsLiteral.userSelector.userId}})
 
 		orderCalendar: (e) ->
 			e.preventDefault()

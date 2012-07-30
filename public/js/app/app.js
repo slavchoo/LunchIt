@@ -488,7 +488,7 @@
         if (this.current) {
           return this.current;
         } else {
-          return $('#supplier-selector').val();
+          return this.current = $('#supplier-selector').val();
         }
       };
 
@@ -1156,6 +1156,7 @@
           return;
         }
         this.dishCategories = new DishCategoryList();
+        console.log(ViewsLiteral.supplierSelector.getCurrentId());
         this.dishCategories.url = '/dish_category/' + ViewsLiteral.supplierSelector.getCurrentId();
         this.dishCategories.on('reset', function() {
           _this.userOrder = new UserOrderList();
@@ -1211,7 +1212,7 @@
           attributes: {
             currentDay: this.copyDate.subtract('days', 1),
             copyData: copyData,
-            userId: $(this.el).find('select.user').val()
+            userId: ViewsLiteral.userSelector.userId
           }
         });
       };
@@ -1323,6 +1324,7 @@
 
       OrderView.prototype.getPotentialCopyDay = function(dateText) {
         var _this = this;
+        console.log('potential');
         this.copyDate = moment(dateText);
         $('.order .control-buttons .copy').text('Копировать на ' + this.copyDate.format('DD MMMM'));
         this.potentialCopyDay = new OrderList();

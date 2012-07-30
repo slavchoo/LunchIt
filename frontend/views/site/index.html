@@ -214,7 +214,7 @@
 
 <script type="text/template" id="menu-items-template">
 	<@ _.each(dishes, function(dish, index) { @>
-		<@ if ((mode == 'accessories' && (!dish.attributes.includeInOrder || !dish.attributes.includeInPayment)) || mode == 'food') { @>
+		<@ if ((mode == 'accessories' && (!dish.attributes.includeInOrder || !dish.attributes.includeInPayment)) || (mode == 'food' && dish.attributes.includeInOrder && dish.attributes.includeInPayment)) { @>
 			<div class="row">
 				<input type="checkbox" class="dish"/>
 				<div class="dish-info" attributeId="<@=dish.attributes.id@>">

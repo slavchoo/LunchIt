@@ -712,12 +712,14 @@ $ ->
 				@dishes.on 'reset', () =>
 					@userOrder.on 'reset', @render, @
 
-				@dishes.fetch()
 				if @attributes.userId && @model
+					@dishes.fetch()
 					@userOrder.url = '/user_orders/' + @attributes.userId + '/' + @model.attributes.id
 					@userOrder.fetch()
 				else
 					@dishes.on 'reset', @render, @
+					@dishes.fetch()
+
 				@.on 'updateMenu', @initialize, @
 
 
